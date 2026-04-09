@@ -155,18 +155,8 @@ ACE Pro 设备通过 Molex 连接器连接到标准 USB：
 - **[配置](docs/CONFIGURATION.md)** - 参数配置
 - **[故障排除](docs/TROUBLESHOOTING.md)** - 常见问题和解决方案
 - **[协议](docs/PROTOCOL.md)** - 技术协议文档（英文）
-- **[协议（俄文）](docs/PROTOCOL_RU.md)** - 技术协议文档
-- **[协议（中文）](docs/PROTOCOL_ZH.md)** - 技术协议文档
 - **[Moonraker API](docs/MOONRAKER_API.md)** - Moonraker API 集成和 REST 端点
 
-**英文文档：**
-- **[Installation](docs/en/INSTALLATION.md)** - 详细的安装指南
-- **[User Guide](docs/en/USER_GUIDE.md)** - 如何使用 ValgACE
-- **[Commands Reference](docs/en/COMMANDS.md)** - 所有可用的 G-code 命令
-- **[Configuration](docs/en/CONFIGURATION.md)** - 参数配置
-- **[Troubleshooting](docs/en/TROUBLESHOOTING.md)** - 常见问题和解决方案
-- **[Protocol](docs/PROTOCOL.md)** - 技术协议文档（英文）
-- **[Moonraker API](docs/MOONRAKER_API.md)** - Moonraker API 集成和 REST 端点（中文）
 
 ## 主要命令
 
@@ -252,7 +242,9 @@ python3 -m http.server 8080
 
 在浏览器中打开：`http://<打印机IP>:8080/index.html`
 
-**对于持久使用，建议通过 nginx 安装** — 参见 [安装说明](docs/INSTALLATION.md#2-安装-valgace-仪表板) 和 [nginx 配置示例](web-interface/server/ace_dashboard.nginx.conf)。
+**对于持久使用，建议通过 nginx 安装** 
+
+参见 [安装说明](docs/INSTALLATION.md#2-安装-valgace-仪表板) 和 [nginx 配置示例](web-interface/server/ace_dashboard.nginx.conf)
 
 主要文件：
 - `index.html` - 主页面入口
@@ -272,7 +264,6 @@ python3 -m http.server 8080
 ### 视频
 
 - [工作演示](https://youtu.be/hozubbjeEw8)
-哦离开，看，看，看，看，看，看，看，看，看，看，看，看，看，看，看，看，
 ### GitHub
 
 - **仓库：** https://github.com/agrloki/ValgACE
