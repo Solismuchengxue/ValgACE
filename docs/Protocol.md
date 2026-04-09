@@ -1,334 +1,262 @@
-Anycubic ACE Pro Protocol
-=========================
+# Anycubic ACE Pro 通信协议
 
-Transport
-=========
+## 传输层
 
-The ACE Pro talks over USB using a USB CDC device, with no flow control or data
-integrity checking. It seems to share a single ringle buffer for input and
-output, and sending packets too fast may drop data. Sending packets before
-waiting for a response may lose output the printer was sending. The maximum
-safe amount to send within a small time span size seems to be 1024 bytes, but
-this may change in the future.
+ACE Pro 通过 USB 进行通信，使用 USB CDC（通信设备类）接口，**无流量控制**且**无数据完整性校验**。该设备似乎为输入和输出共享同一个环形缓冲区，发送数据包过快可能会导致数据丢失。在未收到设备响应前继续发送数据包，可能会导致打印机尝试回传的数据丢失。短时间内安全发送的最大数据量为 `1024` 字节，但该限制未来可能会发生变化。
 
-Framing
-=======
+## 数据帧封装
 
-Each JSON command is packed in a frame of the following format:
+每条 JSON 命令均封装为以下格式的数据帧：
 
-- 2 bytes: 0xFF 0xAA
-- 2 bytes: Payload length (little endian)
-- The JSON itself
-- 2 bytes: CRC-16/MCRF4XX code of the JSON (little endian)
-- Any number of bytes, ignored for now (do not add)
-- 1 byte: 0xFE
+- 2 字节：`0xFF 0xAA`
+- 2 字节：负载长度（小端序）
+- JSON 数据本身
+- 2 字节：JSON 的 CRC-16/MCRF4XX 校验码（小端序）
+- 任意数量字节（会被忽略，请勿添加）
+- 1 字节：`0xFE`
 
-The ACE will disconnect and reconnect if no frame has been completely sent 3
-seconds, regardless of whether the frame data has a valid length or CRC. The
-keepalive does disregard data from the previous connection: Frames can be split
-across multiple connections.
+如果完整的数据帧未在 `3` 秒内发送完毕，ACE 将会断开并重新连接，无论该帧的长度或 CRC 是否有效。保活机制会忽略上一次连接遗留的数据：数据帧可能会在多次连接会话间被分割传输。
 
-The header is two bytes, so in the case of one of the bytes getting corrupted
-the frame will be ignored, unless the frame contains 0xFF 0xAA in it. If the
-header gets corrupted and frame contains 0xFF 0xAA in it the ACE may freeze for
-a while trying to read a large frame. You can try and prevent this by
-re-generating a payload until the CRC does not match 0xFF 0xAA (little endian).
+帧头由两个字节组成，因此如果其中一个字节损坏，该帧将被忽略，**除非**帧内部恰好包含 `0xFF 0xAA` 序列。如果帧头损坏且帧内包含 `0xFF 0xAA`，ACE 可能会因尝试读取超长帧而暂时卡死。您可以尝试通过重新生成负载数据来避免此问题，直到其 CRC 校验值（小端序）避开 `0xFF 0xAA` 为止。
 
-If a long frame (greater than 1024 bytes) is requested either by accident or on
-purpose, the ACE seems to freeze and enter an unrecoverable state. No amount of
-data send to complete the frame's payload unfreezes the machine.
+如果因意外或故意请求了超长帧（超过 1024 字节），ACE 似乎会卡死并进入不可恢复状态。此时无论发送多少数据以尝试完成该帧负载，都无法使设备恢复正常。
 
-RPC
-===
+## RPC 通信
 
-**WARNING**: None of this has been tested and may be entirely wrong.
+**⚠️ 警告**：以下内容均未经过充分测试，可能存在完全错误之处。
 
-Each request is sent to the ACE Pro containing the following JSON data:
+发送给 ACE Pro 的每个请求均包含以下 JSON 数据：
 
-- id: The message number
-- method: A string identifying the method
-- params: Dictionary of method-specific parameters, omit if empty
+- `id`：消息编号
+- `method`：标识方法的字符串
+- `params`：方法特定的参数字典，若为空则省略该字段
 
-Each response is sent from the ACE containing the following JSON data:
+ACE 返回的每个响应均包含以下 JSON 数据：
 
-- id: The request's message number
-- result: Dictionary of method-specific return data
-- code: Method-specific return code
-- msg: Method-specific message
+- `id`：对应请求的消息编号
+- `result`：方法特定的返回数据字典
+- `code`：方法特定的返回码
+- `msg`：方法特定的消息文本
 
-Make sure to lock access to the ACE when sending a request and reading a
-response. It's easy to overlook this if you have a background thread that
-works to keep the connection alive by sending a command every second.
+在发送请求和读取响应期间，请务必对 ACE 的访问进行**互斥锁定**。如果您有一个后台线程通过每秒发送命令来维持连接活跃，这一点很容易被忽略并引发竞态条件。
 
-Methods
-=======
+## 支持的方法
 
-This section documents the methods you can call and the data you'll get
-back. For values not known, static values are listed.
+本节记录了可调用的方法及其返回数据。对于未知的动态值，此处列出的是静态示例值。
 
-This is not a comprehensive API documentation as we don't control the
-firmware or have any authority over the ACE or its future updates.
+> 📌 本指南并非完整的 API 文档，因为我们无法控制固件，也无权决定 ACE 或其未来更新的内容。
 
-enable_rfid
------------
+### enable_rfid
+**请求参数：**
+- 无
 
-Request params:
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
 
-- None
+**响应参数：**
+- 无
 
-Response data:
-- msg: "success"
-- code: 0
+### disable_rfid
+**请求参数：**
+- 无
 
-Response params:
-- None
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
 
-disable_rfid
-------------
+**响应参数：**
+- 无
 
-Request params:
+### get_info
+**请求参数：**
+- 无
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- `id`: `0`
+- `slots`: `4`
+- `model`: `"Anycubic Color Engine Pro"`
+- `firmware`: `"V1.3.82"`
+- `boot_firmware`: `"V1.0.1"`
 
-- None
+### get_filament_info
+**请求参数：**
+- `index`：耗材槽位编号
 
-Response data:
-- msg: "success"
-- code: 0
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
 
-Response params:
-- None
-
-get_info
---------
-
-Request params:
-
-- None
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-
-- id: 0
-- slots: 4
-- model: "Anycubic Color Engine Pro"
-- firmware: "V1.3.82"
-- boot_firmware: "V1.0.1"
-
-get_filament_info
------------------
-
-Request params:
-
-- index: Filament slot number
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-
-- index: Filament slot number
-- sku: "ABCDEF-01"
-- brand: "FakeBrand"
-- type: "PLA", "PLA+", "TPU", "ABS", "PETG", etc
-- color: [0, 0, 0] (Red, green, blue decimal values 0-255)
-- rfid: 0 (Information not found), 1 (Failed to identify), 2 (Identified), 3 (Identifying)
-- extruder_temp: Dictionary of temperature data
-- hotbed_temp: Dictionary of temperature data
-- diameter: 1.75 (Filament diameter in millimeters)
-- total: 330
-- current: 0
-
-Temperature data dictionary:
-
-- min: Temperature in Celsius, integer
-- max: Temperature in Celsius, integer
-
-get_status
-----------
-
-Request params:
-
-- None
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-
-- status: "ready", "busy"
-- action: "feeding", "unwinding", "shifting" (changing gears)
-- dryer_status: Dictionary of dryer status
-- temp: Dryer temperature in Celsius
-- enable_rfid: 1
-- fan_speed: Fan speed in RPM
-- feed_assist_count: 0
-- cont_assist_time: 0.0 (Continous feeding time in milliseconds)
-- slots: Array of dictionary of slot status
-
-Dryer status dictionary:
-- status: "stop", "drying"
-- target_temp: 60
-- duration: 300 (Minutes)
-- remain_time: 50 (Minutes)
-
-Slot status dictionary:
-- index: Filament slot number
-- status: "ready"
-- sku: "ABCDEF-01"
-- brand: "FakeBrand"
-- type: "PLA", "PLA+", "TPU", "ABS", "PETG", etc
-- color: [0, 0, 0] (Red, green, blue decimal values 0-255)
-- rfid: 0 (Information not found), 1 (Failed to identify), 2 (Identified), 3 (Identifying)
-
-drying
-------
-
-Request params:
-
-- temp: Dryer temperature in Celsius
-- fan_speed: 7000 (RPM)
-- duration: 240 (minutes)
-
-Response data:
-- msg: "drying"
-- code: 0
-
-Response params:
-- None
-
-drying_stop
------------
-
-Request params:
-
-- None
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-- None
-
-unwind_filament
----------------
-
-Request params:
-
-- index: Filament slot number
-- length: 300, 70
-- speed: 10, 15
-- mode: 0 (normal mode), 1 (enhanced mode)
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-- None
-
-update_unwinding_speed
-----------------------
-
-Request params:
-
-- index: Filament slot number
-- speed: 15
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-- None
-
-stop_unwind_filament
---------------------
-
-Request params:
-
-- index: Filament slot number
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-- None
-
-feed_filament
--------------
-
-Request params:
-
-- index: Filament slot number
-- length: 2000
-- speed: 25
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-- None
-
-update_feeding_speed
---------------------
-
-Request params:
-
-- index: Filament slot number
-- speed: 25
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-- None
-
-stop_feed_filament
-------------------
-
-Request params:
-
-- index: Filament slot number
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-- None
-
-start_feed_assist
------------------
-
-Request params:
-
-- index: Filament slot number
-
-Response data:
-- msg: "success"
-- code: 0
-
-Response params:
-- None
-
-stop_feed_assist
-----------------
-
-Request params:
-
-- index: Filament slot number
-
-Response data:
-- msg: ""
-- code: 0
-
-Response params:
-- None
+**响应参数：**
+- `index`：耗材槽位编号
+- `sku`: `"ABCDEF-01"`
+- `brand`: `"FakeBrand"`
+- `type`: `"PLA"`, `"PLA+"`, `"TPU"`, `"ABS"`, `"PETG"` 等
+- `color`: `[0, 0, 0]`（RGB 颜色值，十进制 0-255）
+- `rfid`: `0`（未找到信息）, `1`（识别失败）, `2`（识别成功）, `3`（识别中）
+- `extruder_temp`：挤出机温度数据字典
+- `hotbed_temp`：热床温度数据字典
+- `diameter`: `1.75`（耗材直径，单位：毫米）
+- `total`: `330`
+- `current`: `0`
+
+**温度数据字典结构：**
+- `min`：最低温度（摄氏度，整数）
+- `max`：最高温度（摄氏度，整数）
+
+### get_status
+**请求参数：**
+- 无
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- `status`: `"ready"`（就绪）, `"busy"`（忙碌）
+- `action`: `"feeding"`（送料）, `"unwinding"`（退料）, `"shifting"`（档位切换）
+- `dryer_status`：烘干状态字典
+- `temp`：烘干模块温度（摄氏度）
+- `enable_rfid`: `1`
+- `fan_speed`：风扇转速（RPM）
+- `feed_assist_count`: `0`
+- `cont_assist_time`: `0.0`（连续辅助送料时间，毫秒）
+- `slots`：槽位状态字典数组
+
+**烘干状态字典：**
+- `status`: `"stop"`（停止）, `"drying"`（烘干中）
+- `target_temp`: `60`
+- `duration`: `300`（分钟）
+- `remain_time`: `50`（分钟）
+
+**槽位状态字典：**
+- `index`：耗材槽位编号
+- `status`: `"ready"`
+- `sku`: `"ABCDEF-01"`
+- `brand`: `"FakeBrand"`
+- `type`: `"PLA"`, `"PLA+"`, `"TPU"`, `"ABS"`, `"PETG"` 等
+- `color`: `[0, 0, 0]`（RGB 颜色值）
+- `rfid`: `0`（未找到信息）, `1`（识别失败）, `2`（识别成功）, `3`（识别中）
+
+### drying
+**请求参数：**
+- `temp`：烘干温度（摄氏度）
+- `fan_speed`: `7000`（RPM）
+- `duration`: `240`（分钟）
+
+**响应数据：**
+- `msg`: `"drying"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### drying_stop
+**请求参数：**
+- 无
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### unwind_filament
+**请求参数：**
+- `index`：耗材槽位编号
+- `length`: `300`, `70`（毫米）
+- `speed`: `10`, `15`（毫米/秒）
+- `mode`: `0`（普通模式）, `1`（增强模式）
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### update_unwinding_speed
+**请求参数：**
+- `index`：耗材槽位编号
+- `speed`: `15`
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### stop_unwind_filament
+**请求参数：**
+- `index`：耗材槽位编号
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### feed_filament
+**请求参数：**
+- `index`：耗材槽位编号
+- `length`: `2000`（毫米）
+- `speed`: `25`（毫米/秒）
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### update_feeding_speed
+**请求参数：**
+- `index`：耗材槽位编号
+- `speed`: `25`
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### stop_feed_filament
+**请求参数：**
+- `index`：耗材槽位编号
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### start_feed_assist
+**请求参数：**
+- `index`：耗材槽位编号
+
+**响应数据：**
+- `msg`: `"success"`
+- `code`: `0`
+
+**响应参数：**
+- 无
+
+### stop_feed_assist
+**请求参数：**
+- `index`：耗材槽位编号
+
+**响应数据：**
+- `msg`: `""`
+- `code`: `0`
+
+**响应参数：**
+- 无

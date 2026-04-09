@@ -1,73 +1,78 @@
-# Nginx конфигурация для ValgACE Dashboard
+# Nginx 配置用于 ValgACE Dashboard
 
-Примеры конфигурации nginx для хостинга веб-интерфейса ValgACE Dashboard.
+ValgACE Dashboard 网页界面的 nginx 配置示例。
 
-## Базовая конфигурация
+## 基本配置
 
-### Вариант 1: Отдельный виртуальный хост
+### 方案 1: 独立的虚拟主机
 
-Создайте файл `/etc/nginx/sites-available/ace-dashboard`:
+创建文件 `/etc/nginx/sites-available/ace-dashboard`:
 
 ```nginx
 server {
     listen 80;
-    server_name ace-dashboard.local;  # Замените на ваш домен или IP
-    
-    root /path/to/ValgACE/web-interface;  # Путь к файлам dashboard
-    index ace-dashboard.html;
-    
-    # Логирование
+    server_name ace-dashboard.local;  # 替换为您的域名或IP
+
+    root /path/to/ValgACE/web-interface;  # dashboard文件路径
+    index index.html;
+
+    # 日志记录
     access_log /var/log/nginx/ace-dashboard-access.log;
     error_log /var/log/nginx/ace-dashboard-error.log;
-    
-    # Основной файл
+
+    # 主文件
     location / {
-        try_files $uri $uri/ /ace-dashboard.html;
+        try_files $uri $uri/ /index.html;
     }
-    
-    # Статические файлы
+
+    # 静态文件
     location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg)$ {
         expires 1y;
+        # 缓存控制头
         add_header Cache-Control "public, immutable";
     }
-    
-    # Проксирование API запросов к Moonraker
+    # 代理API请求到Moonraker
     location /server/ {
         proxy_pass http://localhost:7125;
         proxy_http_version 1.1;
-        
+
+        # WebSocket升级头
         proxy_set_header Upgrade $http_upgrade;
+        # 连接升级头
         proxy_set_header Connection "upgrade";
+        # 主机头
         proxy_set_header Host $host;
+        # 真实客户端IP
         proxy_set_header X-Real-IP $remote_addr;
+        # 转发客户端IP链
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # 原始协议
         proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Таймауты для WebSocket
+
+        # WebSocket超时
         proxy_read_timeout 86400;
         proxy_send_timeout 86400;
     }
-    
-    # Проксирование WebSocket
+
+    # 代理WebSocket
     location /websocket {
         proxy_pass http://localhost:7125/websocket;
         proxy_http_version 1.1;
-        
+
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Таймауты для WebSocket
+
         proxy_read_timeout 86400;
         proxy_send_timeout 86400;
     }
 }
 ```
 
-Активируйте конфигурацию:
+激活配置:
 
 ```bash
 sudo ln -s /etc/nginx/sites-available/ace-dashboard /etc/nginx/sites-enabled/
@@ -75,105 +80,104 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### Вариант 2: Поддомен для существующего сайта
+### 方案 2: 现有网站的子域名
 
-Добавьте в существующий конфиг nginx:
+在现有的nginx配置中添加:
 
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
-    
-    # ... существующая конфигурация ...
-    
-    # ValgACE Dashboard на поддомене
+
+    # ... 现有配置 ...
+
+    # 子域名上的ValgACE Dashboard
     location /ace {
         alias /path/to/ValgACE/web-interface;
-        index ace-dashboard.html;
-        try_files $uri $uri/ /ace/ace-dashboard.html;
+        index index.html;
+        try_files $uri $uri/ /ace/index.html;
     }
-    
-    # Проксирование API
+
+    # 代理API
     location /ace/server/ {
         rewrite ^/ace/server/(.*) /server/$1 break;
         proxy_pass http://localhost:7125;
         proxy_http_version 1.1;
-        
+
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         proxy_read_timeout 86400;
         proxy_send_timeout 86400;
-    }
-    
-    # Проксирование WebSocket
+    }    
+    # 代理WebSocket
     location /ace/websocket {
         rewrite ^/ace/websocket /websocket break;
         proxy_pass http://localhost:7125;
         proxy_http_version 1.1;
-        
+
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         proxy_read_timeout 86400;
         proxy_send_timeout 86400;
     }
 }
 ```
 
-## Конфигурация с SSL (HTTPS)
+## SSL (HTTPS) 配置
 
-### Использование Let's Encrypt
+### 使用 Let's Encrypt
 
 ```nginx
 server {
     listen 80;
     server_name ace-dashboard.example.com;
-    
-    # Редирект на HTTPS
+
+    # 重定向到HTTPS
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
     server_name ace-dashboard.example.com;
-    
-    # SSL сертификаты (Let's Encrypt)
+
+    # SSL证书 (Let's Encrypt)
     ssl_certificate /etc/letsencrypt/live/ace-dashboard.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/ace-dashboard.example.com/privkey.pem;
-    
-    # SSL настройки
+
+    # SSL设置
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     ssl_prefer_server_ciphers on;
-    
+
     root /path/to/ValgACE/web-interface;
-    index ace-dashboard.html;
-    
-    # Основной файл
+    index index.html;
+
+    # 主文件
     location / {
-        try_files $uri $uri/ /ace-dashboard.html;
+        try_files $uri $uri/ /index.html;
     }
-    
-    # Статические файлы
+
+    # 静态文件
     location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
-    
-    # Проксирование API запросов к Moonraker
+
+    # 代理API请求到Moonraker
     location /server/ {
         proxy_pass http://localhost:7125;
         proxy_http_version 1.1;
-        
+
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
@@ -184,8 +188,8 @@ server {
         proxy_read_timeout 86400;
         proxy_send_timeout 86400;
     }
-    
-    # Проксирование WebSocket
+
+    # 代理WebSocket
     location /websocket {
         proxy_pass http://localhost:7125/websocket;
         proxy_http_version 1.1;
@@ -203,15 +207,15 @@ server {
 }
 ```
 
-Получение сертификата Let's Encrypt:
+获取 Let's Encrypt 证书：
 
 ```bash
 sudo certbot --nginx -d ace-dashboard.example.com
 ```
 
-## Интеграция с Mainsail/Fluidd
+## 与 Mainsail/Fluidd 集成
 
-Если у вас уже настроен Mainsail или Fluidd, можно добавить dashboard как дополнительный путь:
+如果您已经配置了 Mainsail 或 Fluidd，可以将 dashboard 添加为附加路径：
 
 ```nginx
 server {
@@ -220,18 +224,18 @@ server {
     
     # Mainsail/Fluidd
     location / {
-        proxy_pass http://localhost:7126;  # или другой порт вашего веб-интерфейса
-        # ... настройки прокси ...
+        proxy_pass http://localhost:7126;  # 或您的网页界面其他端口
+        # ... 代理设置 ...
     }
     
     # ValgACE Dashboard
     location /ace {
         alias /path/to/ValgACE/web-interface;
-        index ace-dashboard.html;
-        try_files $uri $uri/ /ace/ace-dashboard.html;
+        index index.html;
+        try_files $uri $uri/ /ace/index.html;
     }
     
-    # Проксирование Moonraker API (если еще не настроено)
+    # 代理 Moonraker API（如果尚未配置）
     location /server/ {
         proxy_pass http://localhost:7125;
         proxy_http_version 1.1;
@@ -265,94 +269,94 @@ server {
 }
 ```
 
-## Настройка конфигурации dashboard
+## 配置 dashboard 设置
 
-После настройки nginx, обновите `ace-dashboard-config.js`:
+配置 nginx 后，更新 `config/ace-dashboard-config.js`：
 
 ```javascript
 const ACE_DASHBOARD_CONFIG = {
-    // Если nginx проксирует на localhost:7125, используйте относительный путь
+    // 如果 nginx 代理到 localhost:7125，使用相对路径
     apiBase: window.location.origin,
     
-    // Или укажите явно, если Moonraker на другом хосте
+    // 或者如果 Moonraker 在其他主机上明确指定
     // apiBase: 'http://192.168.1.100:7125',
     
-    // Остальные настройки...
+    // 其余设置...
 };
 ```
 
-## Безопасность
+## 安全配置
 
-### Ограничение доступа по IP
+### 按IP限制访问
 
 ```nginx
 location / {
-    # Разрешить только локальную сеть
+    # 仅允许本地网络
     allow 192.168.0.0/16;
     allow 10.0.0.0/8;
     allow 172.16.0.0/12;
     deny all;
     
-    try_files $uri $uri/ /ace-dashboard.html;
+    try_files $uri $uri/ /index.html;
 }
 ```
 
-### Базовая аутентификация
+### 基本身份验证
 
 ```nginx
 location / {
     auth_basic "ValgACE Dashboard";
     auth_basic_user_file /etc/nginx/.htpasswd;
     
-    try_files $uri $uri/ /ace-dashboard.html;
+    try_files $uri $uri/ /index.html;
 }
 ```
 
-Создание файла паролей:
+创建密码文件：
 
 ```bash
 sudo htpasswd -c /etc/nginx/.htpasswd username
 ```
 
-## Проверка конфигурации
+## 检查配置
 
-1. Проверьте синтаксис nginx:
+1. 检查 nginx 语法：
    ```bash
    sudo nginx -t
    ```
 
-2. Перезагрузите nginx:
+2. 重新加载 nginx：
    ```bash
    sudo systemctl reload nginx
    ```
 
-3. Проверьте доступность:
+3. 检查可访问性：
    ```bash
-   curl http://your-server/ace-dashboard.html
+   curl http://your-server/index.html
    ```
 
-4. Проверьте API:
+4. 检查 API：
    ```bash
    curl http://your-server/server/ace/status
    ```
 
-## Устранение неполадок
+## 故障排除
 
 ### 502 Bad Gateway
 
-- Проверьте, что Moonraker запущен: `systemctl status moonraker`
-- Проверьте, что Moonraker слушает на порту 7125: `netstat -tlnp | grep 7125`
-- Проверьте логи nginx: `tail -f /var/log/nginx/error.log`
+- 检查 Moonraker 是否正在运行：`systemctl status moonraker`
+- 检查 Moonraker 是否在端口 7125 上监听：`netstat -tlnp | grep 7125`
+- 检查 nginx 日志：`tail -f /var/log/nginx/error.log`
 
-### WebSocket не подключается
+### WebSocket 无法连接
 
-- Убедитесь, что настроены правильные заголовки `Upgrade` и `Connection`
-- Проверьте таймауты WebSocket
-- Проверьте логи Moonraker на наличие ошибок
+- 确保正确设置了 `Upgrade` 和 `Connection` 头
+- 检查 WebSocket 超时
+- 检查 Moonraker 日志是否有错误
 
-### CORS ошибки
+### CORS 错误
 
-Если Moonraker находится на другом хосте, добавьте в `moonraker.conf`:
+如果 Moonraker 在其他主机上，在 `moonraker.conf` 中添加：
 
 ```ini
 [cors_domains]
@@ -362,23 +366,23 @@ your-domain.com
 *:*
 ```
 
-## Примеры использования
+## 使用示例
 
-### Доступ через IP
+### 通过IP访问
 
 ```nginx
 server {
     listen 80;
-    server_name 192.168.1.100;  # IP адрес сервера
+    server_name 192.168.1.100;  # 服务器IP地址
     
     root /home/user/ValgACE/web-interface;
-    index ace-dashboard.html;
+    index index.html;
     
-    # ... остальная конфигурация ...
+    # ... 其余配置 ...
 }
 ```
 
-### Доступ через домен
+### 通过域名访问
 
 ```nginx
 server {
@@ -386,13 +390,13 @@ server {
     server_name ace.yourdomain.com;
     
     root /var/www/ace-dashboard;
-    index ace-dashboard.html;
+    index index.html;
     
-    # ... остальная конфигурация ...
+    # ... 其余配置 ...
 }
 ```
 
 ---
 
-*Последнее обновление: 2025*
+*最后更新：2025*
 

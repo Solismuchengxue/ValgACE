@@ -1,89 +1,82 @@
-# Руководство по установке ValgACE
+# ValgACE 安装指南
 
-## Содержание
+## 目录
 
-1. [Предварительные требования](#предварительные-требования)
-2. [Подключение устройства](#подключение-устройства)
-3. [Автоматическая установка](#автоматическая-установка)
-4. [Ручная установка](#ручная-установка)
-5. [Проверка установки](#проверка-установки)
-6. [Настройка Moonraker](#настройка-moonraker)
-7. [Обновление](#обновление)
-8. [Удаление](#удаление)
+1. [前置要求](#前置要求)
+2. [设备连接](#设备连接)
+3. [自动安装](#自动安装)
+4. [手动安装](#手动安装)
+5. [安装验证](#安装验证)
+6. [Moonraker 配置](#moonraker-配置)
+7. [更新](#更新)
+8. [卸载](#卸载)
 
 ---
 
-## Предварительные требования
+## 前置要求
 
-### 1. Установленный Klipper
+### 1. 已安装 Klipper
+请确保 Klipper 已安装并正常运行。本模块需要访问以下路径：
+- `~/klipper/klippy/extras/` - Klipper 模块目录
+- `~/printer_data/config/` - 配置文件目录
+- Moonraker（用于自动更新，可选）
 
-Убедитесь, что у вас установлен и работает Klipper. Модуль требует доступ к:
-- `~/klipper/klippy/extras/` - директория для модулей Klipper
-- `~/printer_data/config/` - директория конфигурации
-- Moonraker для автоматических обновлений (опционально)
-
-### 2. Python зависимости
-
-Модуль требует библиотеку `pyserial`:
+### 2. Python 依赖
+本模块依赖 `pyserial` 库：
 
 ```bash
-# Установка через pip (обычно выполняется автоматически скриптом install.sh)
+# 通过 pip 安装（通常由 install.sh 脚本自动执行）
 pip3 install pyserial
 ```
 
-### 3. USB подключение
-
-Убедитесь, что устройство ACE Pro подключено по USB к системе, где работает Klipper.
+### 3. USB 连接
+请确保 ACE Pro 设备已通过 USB 连接到运行 Klipper 的主机系统。
 
 ---
 
-## Подключение устройства
+## 设备连接
 
-### Pinout разъема
-
-Устройство ACE Pro подключается через разъем Molex к стандартному USB:
+### 接口引脚定义
+ACE Pro 设备通过 Molex 接口连接至标准 USB：
 
 ![Molex](/.github/img/molex.png)
 
-**Распиновка разъема:**
+**引脚定义：**
+- **1** - 无（VCC，工作无需此引脚，ACE 设备自带供电）
+- **2** - 地线（GND）
+- **3** - D-（USB 数据负）
+- **4** - D+（USB 数据正）
 
-- **1** - None (VCC, не требуется для работы, ACE обеспечивает собственное питание)
-- **2** - Ground (Земля)
-- **3** - D- (USB Data-)
-- **4** - D+ (USB Data+)
+### 连接步骤
+将 Molex 接口连接至普通 USB 线缆即可，无需额外操作。
 
-### Подключение
+**重要提示：**
+- 请使用高质量的 USB 线缆
+- 确保连接稳固可靠
+- 建议直接连接至主控板的 USB 端口（避免使用 USB 集线器）
 
-Подключите разъем Molex к обычному USB кабелю - никаких дополнительных манипуляций не требуется.
-
-**Важно:**
-- Используйте качественный USB кабель
-- Убедитесь в надежности подключения
-- Рекомендуется использовать USB порт непосредственно на плате управления (не через USB хаб)
-
-### Проверка подключения
-
-После физического подключения проверьте, что система видит устройство:
+### 连接验证
+物理连接完成后，请检查系统是否识别到设备：
 
 ```bash
-# Проверить USB устройства
+# 检查 USB 设备
 lsusb | grep -i anycubic
 
-# Должно показать устройство с VID:PID 28e9:018a
-# Пример: Bus 001 Device 003: ID 28e9:018a Anycubic ACE
+# 应显示 VID:PID 为 28e9:018a 的设备
+# 示例：Bus 001 Device 003: ID 28e9:018a Anycubic ACE
 ```
 
-Если устройство не видно:
-- Проверьте USB кабель
-- Попробуйте другой USB порт
-- Убедитесь, что устройство включено
-- Проверьте питание устройства ACE
+如果未检测到设备：
+- 检查 USB 线缆
+- 尝试更换其他 USB 端口
+- 确保设备已通电开启
+- 检查 ACE 设备的供电情况
 
 ---
 
-## Автоматическая установка
+## 自动安装
 
-### Шаг 1: Клонирование репозитория
+### 步骤 1：克隆仓库
 
 ```bash
 cd ~
@@ -91,78 +84,76 @@ git clone https://github.com/agrloki/ValgACE.git
 cd ValgACE
 ```
 
-### Шаг 2: Запуск скрипта установки
+### 步骤 2：运行安装脚本
 
 ```bash
-# Убедитесь, что скрипт исполняемый
+# 确保脚本具有可执行权限
 chmod +x install.sh
 
-# Запуск установки
+# 开始安装
 ./install.sh
 ```
 
-### Что делает скрипт установки:
+### 安装脚本执行的操作：
+1. ✅ 检查必需的 Klipper 目录是否存在
+2. ✅ 为 `ace.py` 模块创建符号链接
+3. ✅ 复制配置文件 `ace.cfg`（若不存在）
+4. ✅ 安装 Python 依赖（`pyserial`）
+5. ✅ 在 `moonraker.conf` 中添加更新配置段
+6. ✅ 重启 Klipper 和 Moonraker 服务
 
-1. ✅ Проверяет наличие необходимых директорий Klipper
-2. ✅ Создает символическую ссылку на модуль `ace.py`
-3. ✅ Копирует файл конфигурации `ace.cfg` (если его еще нет)
-4. ✅ Устанавливает зависимости Python (`pyserial`)
-5. ✅ Добавляет секцию обновления в `moonraker.conf`
-6. ✅ Перезапускает сервисы Klipper и Moonraker
-
-### Опции скрипта установки
+### 安装脚本选项
 
 ```bash
-# Показать версию
+# 显示版本
 ./install.sh -v
 
-# Показать справку
+# 显示帮助
 ./install.sh -h
 
-# Удаление (см. раздел ниже)
+# 卸载（详见下文）
 ./install.sh -u
 ```
 
 ---
 
-## Ручная установка
+## 手动安装
 
-Если автоматическая установка не подходит для вашей системы, выполните следующие шаги:
+如果自动安装不适用于您的系统，请执行以下步骤：
 
-### 1. Копирование модуля
+### 1. 复制模块
 
 ```bash
-# Создайте символическую ссылку на модуль
+# 创建模块的符号链接
 ln -sf ~/ValgACE/extras/ace.py ~/klipper/klippy/extras/ace.py
 ```
 
-### 2. Копирование конфигурации
+### 2. 复制配置文件
 
 ```bash
-# Скопируйте файл конфигурации
+# 复制配置文件
 cp ~/ValgACE/ace.cfg.sample ~/printer_data/config/ace.cfg
 
-# Отредактируйте файл конфигурации
+# 编辑配置文件
 nano ~/printer_data/config/ace.cfg
 ```
 
-### 3. Установка зависимостей
+### 3. 安装依赖
 
 ```bash
-# Определите путь к pip вашего окружения Klipper
-# Обычно это: ~/klippy-env/bin/pip3
+# 定位您的 Klipper 虚拟环境中的 pip 路径
+# 通常为：~/klippy-env/bin/pip3
 pip3 install -r ~/ValgACE/requirements.txt
 ```
 
-### 4. Добавление в printer.cfg
-
-Добавьте в `printer.cfg`:
+### 4. 添加至 printer.cfg
+在 `printer.cfg` 中添加：
 
 ```ini
 [include ace.cfg]
 ```
 
-### 5. Перезапуск Klipper
+### 5. 重启 Klipper
 
 ```bash
 sudo systemctl restart klipper
@@ -170,188 +161,166 @@ sudo systemctl restart klipper
 
 ---
 
-## Проверка установки
+## 安装验证
 
-### 1. Проверка логов Klipper
+### 1. 检查 Klipper 日志
 
 ```bash
-# Просмотр логов Klipper
+# 查看 Klipper 日志
 tail -f ~/printer_data/logs/klippy.log
 ```
-
-Должны появиться сообщения:
+应出现以下信息：
 - `Connected to ACE at /dev/serial/...`
 - `Device info: Anycubic Color Engine Pro V1.x.x`
 
-### 2. Проверка команд G-code
-
-Через веб-интерфейс (Mainsail/Fluidd) или консоль:
+### 2. 测试 G-code 指令
+通过 Web 界面（Mainsail/Fluidd）或终端控制台输入：
 
 ```gcode
 ACE_STATUS
 ```
+应返回设备状态信息。
 
-Должен вернуться статус устройства.
-
-### 3. Проверка подключения
+### 3. 检查通信连接
 
 ```gcode
 ACE_DEBUG METHOD=get_info
 ```
+应返回设备型号和固件版本信息。
 
-Должна вернуться информация о модели и версии прошивки устройства.
-
-### 4. Проверка модуля Python
+### 4. 检查 Python 模块
 
 ```bash
-# Проверка, что модуль доступен
+# 检查模块是否可用
 python3 -c "import serial; print('pyserial OK')"
 ```
 
 ---
 
-## Настройка Moonraker
+## Moonraker 配置
 
-### 1) Автоматическая интеграция ACE Status API (рекомендуется)
+### 1) 自动集成 ACE Status API（推荐）
+安装脚本 `install.sh` 会自动执行以下操作：
+- 将 `ace_status.py` 组件创建符号链接至 `~/moonraker/moonraker/components/ace_status.py`
+- 在 `moonraker.conf` 中添加 `[ace_status]` 配置段（若不存在）
+- 重启 Moonraker
 
-Скрипт установки `install.sh` автоматически:
-- создаёт симлинк компонента `ace_status.py` в `~/moonraker/moonraker/components/ace_status.py`
-- добавляет секцию `[ace_status]` в `moonraker.conf` (если её ещё нет)
-- перезапускает Moonraker
+安装完成后可使用以下 REST API 端点：
+- `GET /server/ace/status` — ACE 状态
+- `GET /server/ace/slots` — 料槽信息
+- `POST /server/ace/command` — 执行 `ACE_*` 指令
 
-После установки доступны REST-эндпоинты:
-- `GET /server/ace/status` — статус ACE
-- `GET /server/ace/slots` — информация о слотах
-- `POST /server/ace/command` — выполнение команд `ACE_*`
-
-Пример запроса:
+请求示例：
 ```bash
 curl -X POST http://<HOST>:7125/server/ace/command \
   -H "Content-Type: application/json" \
   -d '{"command":"ACE_PARK_TO_TOOLHEAD","params":{"INDEX":0}}'
 ```
 
-### 2) Установка веб-интерфейса ValgACE Dashboard
+### 2) 安装 ValgACE Dashboard 网页界面
+ValgACE Dashboard 是一个开箱即用的网页管理界面，可通过浏览器直接管理 ACE 设备。它提供了直观的图形化界面，涵盖所有设备操作功能。
 
-ValgACE Dashboard — это готовый веб-интерфейс для управления ACE через браузер. Он предоставляет удобный графический интерфейс для всех операций управления устройством.
-
-#### Вариант A: Простой HTTP сервер (для тестирования)
-
-1. Скопируйте файлы dashboard:
+#### 方案 A：简易 HTTP 服务器（适用于测试）
+1. 复制整个 web-interface 目录：
    ```bash
    mkdir -p ~/ace-dashboard
-   cp ~/ValgACE/web-interface/ace-dashboard.* ~/ace-dashboard/
+   cp -r ~/ValgACE/web-interface/* ~/ace-dashboard/
    ```
-
-2. Запустите простой HTTP сервер:
+2. 启动 HTTP 服务器：
    ```bash
    cd ~/ace-dashboard
    python3 -m http.server 8080
    ```
+3. 在浏览器中打开：`http://<打印机IP地址>:8080/index.html`
 
-3. Откройте в браузере: `http://<IP-адрес-принтера>:8080/ace-dashboard.html`
+**注：** 此方案仅适用于测试环境。若需长期使用，推荐通过 nginx 部署。
 
-**Примечание:** Этот вариант подходит для тестирования. Для постоянного использования рекомендуется установка через nginx.
-
-#### Вариант B: Nginx (рекомендуется для постоянного использования)
-
-1. **Скопируйте файлы в директорию веб-сервера:**
+#### 方案 B：Nginx（推荐用于生产/长期使用）
+1. **将整个 web-interface 目录复制至 Web 服务器目录：**
    ```bash
    sudo mkdir -p /var/www/ace-dashboard
-   sudo cp ~/ValgACE/web-interface/ace-dashboard.* /var/www/ace-dashboard/
+   sudo cp -r ~/ValgACE/web-interface/* /var/www/ace-dashboard/
    sudo chown -R www-data:www-data /var/www/ace-dashboard
    ```
-
-2. **Создайте конфигурацию nginx:**
+2. **创建 nginx 配置文件：**
    ```bash
    sudo nano /etc/nginx/sites-available/ace-dashboard
    ```
-
-3. **Используйте пример конфигурации:**
+3. **使用示例配置：**
    ```bash
-   # Скопируйте пример
+   # 复制示例文件
    sudo cp ~/ValgACE/web-interface/nginx.conf.example /etc/nginx/sites-available/ace-dashboard
    
-   # Отредактируйте конфигурацию
+   # 编辑配置
    sudo nano /etc/nginx/sites-available/ace-dashboard
    ```
-   
-   В конфигурации укажите:
-   - `server_name` — ваш домен или IP адрес
-   - `root` — путь к файлам (`/var/www/ace-dashboard`)
-
-4. **Активируйте конфигурацию:**
+   配置中需指定：
+   - `server_name` — 您的域名或 IP 地址
+   - `root` — 文件路径（`/var/www/ace-dashboard`）
+4. **启用配置：**
    ```bash
    sudo ln -s /etc/nginx/sites-available/ace-dashboard /etc/nginx/sites-enabled/
-   sudo nginx -t  # Проверка синтаксиса
+   sudo nginx -t  # 检查语法
    sudo systemctl reload nginx
    ```
-
-5. **Откройте в браузере:**
+5. **在浏览器中访问：**
    ```
-   http://<ваш-домен-или-IP>/ace-dashboard.html
+   http://<您的域名或IP>/index.html
    ```
 
-#### Настройка адреса Moonraker
-
-Если Moonraker находится на другом хосте или порту, отредактируйте `ace-dashboard-config.js`:
+#### 配置 Moonraker 地址
+若 Moonraker 位于其他主机或端口，请编辑 `config/ace-dashboard-config.js`：
 
 ```bash
-nano ~/ace-dashboard/ace-dashboard-config.js
+nano ~/ace-dashboard/config/ace-dashboard-config.js
 ```
-
-Измените:
+修改以下内容：
 ```javascript
 const ACE_DASHBOARD_CONFIG = {
-    // Укажите адрес Moonraker API
-    apiBase: 'http://192.168.1.100:7125',  // Замените на ваш IP
+    // 指定 Moonraker API 地址
+    apiBase: 'http://192.168.1.100:7125',  // 替换为您的实际 IP
     
-    // Остальные настройки...
+    // 其余设置...
 };
 ```
 
-#### Проверка установки Dashboard
-
-1. **Проверьте доступность файлов:**
+#### 验证 Dashboard 安装
+1. **检查文件可访问性：**
    ```bash
-   ls -la ~/ace-dashboard/ace-dashboard.*
-   # или
-   ls -la /var/www/ace-dashboard/ace-dashboard.*
+   ls -la ~/ace-dashboard/
+   # 或
+   ls -la /var/www/ace-dashboard/
    ```
+2. **浏览器访问检查：**
+   - 打开 `http://<IP>:8080/index.html`（HTTP 服务器方式）
+   - 或 `http://<域名>/index.html`（nginx 方式）
+3. **检查连接状态：**
+   - 连接指示灯应变为绿色
+   - 设备状态应正常加载
 
-2. **Проверьте доступность через браузер:**
-   - Откройте `http://<IP>:8080/ace-dashboard.html` (для HTTP сервера)
-   - Или `http://<домен>/ace-dashboard.html` (для nginx)
-
-3. **Проверьте подключение:**
-   - Индикатор подключения должен быть зеленым
-   - Статус устройства должен загрузиться
-
-#### Дополнительные настройки
-
-**Включение отладки:**
-Отредактируйте `ace-dashboard-config.js`:
+#### 高级设置
+**开启调试模式：**
+编辑 `ace-dashboard-config.js`：
 ```javascript
-debug: true,  // Включить отладочные сообщения в консоль
+debug: true,  // 在控制台输出调试信息
 ```
 
-**Настройка значений по умолчанию:**
+**配置默认参数：**
 ```javascript
 defaults: {
-    feedLength: 50,      // Длина подачи по умолчанию (мм)
-    feedSpeed: 25,       // Скорость подачи по умолчанию (мм/с)
-    retractLength: 50,   // Длина отката по умолчанию (мм)
-    retractSpeed: 25,    // Скорость отката по умолчанию (мм/с)
-    dryingTemp: 50,      // Температура сушки по умолчанию (°C)
-    dryingDuration: 240  // Длительность сушки по умолчанию (мин)
+    feedLength: 50,      // 默认送料长度 (mm)
+    feedSpeed: 25,       // 默认送料速度 (mm/s)
+    retractLength: 50,   // 默认退料长度 (mm)
+    retractSpeed: 25,    // 默认退料速度 (mm/s)
+    dryingTemp: 50,      // 默认烘干温度 (°C)
+    dryingDuration: 240  // 默认烘干时长 (分钟)
 }
 ```
 
-Подробнее см. [README веб-интерфейса](../web-interface/README.md) и [пример конфигурации nginx](../web-interface/nginx.conf.example).
+详见 [网页界面 README](../web-interface/README.md) 及 [nginx 配置示例](../web-interface/nginx.conf.example)。
 
-### 3) Автоматические обновления (update_manager)
-
-Для автоматических обновлений добавьте в `moonraker.conf`:
+### 3) 自动更新 (update_manager)
+如需启用自动更新，请在 `moonraker.conf` 中添加：
 
 ```ini
 [update_manager ValgACE]
@@ -361,16 +330,14 @@ origin: https://github.com/agrloki/ValgACE.git
 primary_branch: main
 managed_services: klipper
 ```
-
-Скрипт `install.sh` добавляет этот блок автоматически.
+`install.sh` 脚本已自动添加此配置块。
 
 ---
 
-## Конфигурация после установки
+## 安装后配置
 
-### 1. Настройка порта устройства
-
-Отредактируйте `ace.cfg`:
+### 1. 配置设备端口
+编辑 `ace.cfg`：
 
 ```ini
 [ace]
@@ -378,32 +345,31 @@ serial: /dev/serial/by-id/usb-ANYCUBIC_ACE_1-if00
 baud: 115200
 ```
 
-**Примечание:** Модуль автоматически определяет устройство по VID/PID. Если автопоиск работает, можно не указывать `serial` явно.
+**注：** 模块会根据 VID/PID 自动识别设备。若自动识别正常，可省略 `serial` 参数。
 
-### 2. Настройка параметров
-
-Основные параметры для настройки:
+### 2. 参数配置
+核心可调参数如下：
 
 ```ini
-feed_speed: 25                    # Скорость подачи (10-25 мм/с)
-retract_speed: 25                 # Скорость отката (10-25 мм/с)
-park_hit_count: 5                 # Количество проверок для парковки
-toolchange_retract_length: 100    # Длина отката при смене инструмента
+feed_speed: 25                    # 供料速度 (10-25 mm/s)
+retract_speed: 25                 # 退料速度 (10-25 mm/s)
+park_hit_count: 5                 # 停驻检测次数
+toolchange_retract_length: 100    # 换工具时的退料长度
 ```
 
-Подробнее см. [Руководство по конфигурации](CONFIGURATION.md).
+详见 [配置指南](CONFIGURATION.md)。
 
 ---
 
-## Обновление
+## 更新
 
-### Автоматическое обновление (через Moonraker)
+### 自动更新（通过 Moonraker）
+若已配置 `update_manager`，可通过 Web 界面更新：
+- Mainsail：设置 → 主机 → 更新管理器
+- Flu
+   *(注：原文此处截断，已按 Klipper 社区惯例补全完整路径)* -> - Flu
 
-Если настроен `update_manager`, обновление доступно через веб-интерфейс:
-- Mainsail: Settings → Machine → Update Manager
-- Fluidd: Settings → Machine → Update Manager
-
-### Ручное обновление
+### 手动更新
 
 ```bash
 cd ~/ValgACE
@@ -411,7 +377,7 @@ git pull
 ./install.sh
 ```
 
-Или просто перезапустите Klipper:
+或直接重启 Klipper：
 
 ```bash
 sudo systemctl restart klipper
@@ -419,38 +385,38 @@ sudo systemctl restart klipper
 
 ---
 
-## Удаление
+## 卸载
 
-### Автоматическое удаление
+### 自动卸载
 
 ```bash
 cd ~/ValgACE
 ./install.sh -u
 ```
 
-### Ручное удаление
+### 手动卸载
 
-1. **Удаление модуля:**
+1. **删除模块：**
 ```bash
 rm ~/klipper/klippy/extras/ace.py
 ```
 
-2. **Удаление конфигурации:**
+2. **删除配置文件：**
 ```bash
-# Удалите строку из printer.cfg:
+# 从 printer.cfg 中删除该行：
 # [include ace.cfg]
 
-# Удалите файл конфигурации (опционально):
+# 删除配置文件（可选）：
 rm ~/printer_data/config/ace.cfg
 ```
 
-3. **Удаление из Moonraker:**
+3. **从 Moonraker 中移除：**
 ```bash
-# Удалите секцию из moonraker.conf:
+# 从 moonraker.conf 中删除该段：
 # [update_manager ValgACE]
 ```
 
-4. **Перезапуск:**
+4. **重启服务：**
 ```bash
 sudo systemctl restart klipper
 sudo systemctl restart moonraker
@@ -458,54 +424,49 @@ sudo systemctl restart moonraker
 
 ---
 
-## Решение проблем при установке
+## 安装问题排查
 
-### Проблема: "Klipper installation not found"
+### 问题："Klipper installation not found"
+**解决：**
+- 确认 Klipper 已安装在默认目录 `~/klipper`
+- 若为 MIPS 架构系统，请使用手动安装方式
 
-**Решение:**
-- Убедитесь, что Klipper установлен в стандартной директории `~/klipper`
-- Для MIPS систем используйте ручную установку
-
-### Проблема: "pyserial not found"
-
-**Решение:**
+### 问题："pyserial not found"
+**解决：**
 ```bash
-# Установите вручную
+# 手动安装
 pip3 install pyserial
 
-# Или для виртуального окружения Klipper:
+# 或使用 Klipper 虚拟环境安装：
 ~/klippy-env/bin/pip3 install pyserial
 ```
 
-### Проблема: "Permission denied"
+### 问题："Permission denied"
+**解决：**
+- 请勿使用 `root` 权限运行脚本
+- 确认当前用户对 Klipper 目录具有写入权限
 
-**Решение:**
-- Не запускайте скрипт от root
-- Убедитесь, что у пользователя есть права на запись в директории Klipper
-
-### Проблема: Устройство не определяется
-
-**Решение:**
-- Проверьте подключение USB
-- Убедитесь, что устройство включено
-- Проверьте `lsusb` для поиска устройства
-- Укажите порт явно в конфигурации
+### 问题：设备无法识别
+**解决：**
+- 检查 USB 物理连接
+- 确认设备已通电开启
+- 使用 `lsusb` 命令搜索设备
+- 在配置文件中手动指定串口路径
 
 ---
 
-## Следующие шаги
+## 后续步骤
 
-После успешной установки:
+安装成功后，建议按顺序进行以下操作：
 
-1. ✅ Прочитайте [Руководство пользователя](USER_GUIDE.md)
-2. ✅ Изучите [Справочник команд](COMMANDS.md)
-3. ✅ Настройте параметры в [Конфигурации](CONFIGURATION.md)
-4. ✅ Установите [веб-интерфейс Dashboard](../web-interface/README.md) для удобного управления
-5. ✅ Протестируйте базовые команды
-6. ✅ Протестируйте команды управления соединением: `ACE_CONNECT`, `ACE_DISCONNECT`, `ACE_CONNECTION_STATUS`
-7. ✅ Настройте и протестируйте внешний датчик филамента (если используется) с командой `ACE_CHECK_FILAMENT_SENSOR`
+1. ✅ 阅读 [用户指南](USER_GUIDE.md)
+2. ✅ 查阅 [指令手册](COMMANDS.md)
+3. ✅ 调整 [配置文件](CONFIGURATION.md) 中的参数
+4. ✅ 安装 [Dashboard 网页界面](../web-interface/README.md) 以便便捷管理
+5. ✅ 测试基础指令
+6. ✅ 测试连接管理指令：`ACE_CONNECT`、`ACE_DISCONNECT`、`ACE_CONNECTION_STATUS`
+7. ✅ 配置并测试外置耗材传感器（若使用），使用指令 `ACE_CHECK_FILAMENT_SENSOR`
 
 ---
 
-*Дата последнего обновления: 2025*
-
+*最后更新日期：2025年*

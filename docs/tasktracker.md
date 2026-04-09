@@ -1,83 +1,83 @@
-# Task Tracker
+# 任务跟踪器
 
-Отслеживание статуса задач проекта ValgACE.
-
----
-
-## Задача: Обновление документации Infinity Spool
-
-- **Статус**: Завершена
-- **Описание**: Добавление документации для новых параметров infinity spool и auto-trigger системы
-- **Шаги выполнения**:
-  - [x] Анализ изменений в коде extras/ace.py
-  - [x] Обновление docs/CONFIGURATION.md - добавлены параметры infinity_spool_debounce, infinity_spool_pause_on_no_sensor
-  - [x] Обновление docs/COMMANDS.md - добавлено описание auto-trigger системы
-  - [x] Обновление docs/en/CONFIGURATION.md - английская версия
-  - [x] Обновление docs/en/COMMANDS.md - английская версия
-  - [x] Обновление README.md - удалена запись о неработающем infinity spool
-  - [x] Обновление README_EN.md - английская версия
-  - [x] Создание docs/changelog.md
-  - [x] Создание docs/tasktracker.md
-- **Зависимости**: Нет
-- **Дата завершения**: 2026-03-22
+ValgACE 项目任务状态跟踪。
 
 ---
 
-## Задача: Агрессивная парковка
+## 任务：更新 Infinity Spool 文档
 
-- **Статус**: Завершена
-- **Описание**: Реализация альтернативного алгоритма парковки с использованием датчика филамента
-- **Шаги выполнения**:
-  - [x] Добавлен параметр aggressive_parking
-  - [x] Добавлены параметры max_parking_distance, parking_speed, extended_park_time, max_parking_timeout
-  - [x] Реализован алгоритм sensor-based parking
-  - [x] Реализован алгоритм distance-based parking
-  - [x] Документация обновлена
-- **Зависимости**: filament_sensor (опционально)
-- **Дата завершения**: 2025-12
-
----
-
-## Задача: Slot Mapping система
-
-- **Статус**: Завершена
-- **Описание**: Возможность переназначить индексы Klipper (T0-T3) на физические слоты устройства
-- **Шаги выполнения**:
-  - [x] Реализована команда ACE_GET_SLOTMAPPING
-  - [x] Реализована команда ACE_SET_SLOTMAPPING
-  - [x] Реализована команда ACE_RESET_SLOTMAPPING
-  - [x] Реализована команда ACE_GET_CURRENT_INDEX
-  - [x] Реализована команда ACE_SET_CURRENT_INDEX
-  - [x] Документация обновлена
-- **Зависимости**: Нет
-- **Дата завершения**: 2025-11
+- **状态**：已完成
+- **描述**：为新的 infinity spool 参数和自动触发系统添加文档
+- **执行步骤**：
+  - [x] 分析 extras/ace.py 中的代码更改
+  - [x] 更新 docs/CONFIGURATION.md - 添加了 infinity_spool_debounce、infinity_spool_pause_on_no_sensor 参数
+  - [x] 更新 docs/COMMANDS.md - 添加了自动触发系统的描述
+  - [x] 更新 docs/en/CONFIGURATION.md - 英文版本
+  - [x] 更新 docs/en/COMMANDS.md - 英文版本
+  - [x] 更新 README.md - 删除了关于 infinity spool 不工作的记录
+  - [x] 更新 README_EN.md - 英文版本
+  - [x] 创建 docs/changelog.md
+  - [x] 创建 docs/tasktracker.md
+- **依赖项**：无
+- **完成日期**：2026-03-22
 
 ---
 
-## Задача: Infinity Spool Auto-trigger
+## 任务：激进停靠
 
-- **Статус**: Завершена
-- **Описание**: Автоматический мониторинг статуса активного слота и смена при окончании филамента
-- **Шаги выполнения**:
-  - [x] Реализован debounce механизм для подтверждения empty статуса
-  - [x] Добавлен параметр infinity_spool_debounce
-  - [x] Добавлен параметр infinity_spool_pause_on_no_sensor
-  - [x] Интеграция с датчиком филамента
-  - [x] Автоматический вызов ACE_INFINITY_SPOOL
-- **Зависимости**: infinity_spool_mode должен быть включен
-- **Дата завершения**: 2026-03
+- **状态**：已完成
+- **描述**：实现使用耗材传感器的替代停靠算法
+- **执行步骤**：
+  - [x] 添加 aggressive_parking 参数
+  - [x] 添加 max_parking_distance、parking_speed、extended_park_time、max_parking_timeout 参数
+  - [x] 实现基于传感器的停靠算法
+  - [x] 实现基于距离的停靠算法
+  - [x] 更新文档
+- **依赖项**：filament_sensor（可选）
+- **完成日期**：2025-12
 
 ---
 
-## Планируемые задачи
+## 任务：料槽映射系统
 
-### Задача: Комбинированный режим парковки
+- **状态**：已完成
+- **描述**：能够将 Klipper 索引（T0-T3）重新映射到设备的物理料槽
+- **执行步骤**：
+  - [x] 实现 ACE_GET_SLOTMAPPING 命令
+  - [x] 实现 ACE_SET_SLOTMAPPING 命令
+  - [x] 实现 ACE_RESET_SLOTMAPPING 命令
+  - [x] 实现 ACE_GET_CURRENT_INDEX 命令
+  - [x] 实现 ACE_SET_CURRENT_INDEX 命令
+  - [x] 更新文档
+- **依赖项**：无
+- **完成日期**：2025-11
 
-- **Статус**: Не начата
-- **Описание**: Комбинация feed+feed assist для принтеров с большой дистанцией от сплиттера до головы
-- **Шаги выполнения**:
-  - [ ] Проектирование алгоритма
-  - [ ] Реализация
-  - [ ] Тестирование
-  - [ ] Документация
-- **Зависимости**: Нет
+---
+
+## 任务：Infinity Spool 自动触发
+
+- **状态**：已完成
+- **描述**：自动监控活动料槽状态并在耗材结束时切换
+- **执行步骤**：
+  - [x] 实现去抖机制以确认 empty 状态
+  - [x] 添加 infinity_spool_debounce 参数
+  - [x] 添加 infinity_spool_pause_on_no_sensor 参数
+  - [x] 与耗材传感器集成
+  - [x] 自动调用 ACE_INFINITY_SPOOL
+- **依赖项**：必须启用 infinity_spool_mode
+- **完成日期**：2026-03
+
+---
+
+## 计划任务
+
+### 任务：组合停靠模式
+
+- **状态**：未开始
+- **描述**：为从分流器到打印头距离较大的打印机组合 feed + feed assist
+- **执行步骤**：
+  - [ ] 算法设计
+  - [ ] 实现
+  - [ ] 测试
+  - [ ] 文档
+- **依赖项**：无

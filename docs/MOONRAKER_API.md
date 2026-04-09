@@ -1,94 +1,94 @@
-# Moonraker API Extension для ValgACE
+# ValgACE Moonraker API 扩展
 
-Подробная документация по компоненту `ace_status.py` - расширению Moonraker API для доступа к статусу ACE через REST API и WebSocket.
+`ace_status.py` 组件的详细文档 - 用于通过 REST API 和 WebSocket 访问 ACE 状态的 Moonraker API 扩展。
 
-## Содержание
+## 目录
 
-1. [Описание](#описание)
-2. [Установка](#установка)
-3. [Архитектура компонента](#архитектура-компонента)
-4. [API Эндпоинты](#api-эндпоинты)
-5. [Подробное описание команд](#подробное-описание-команд)
-6. [WebSocket подписка](#websocket-подписка)
-7. [Примеры использования](#примеры-использования)
-8. [Устранение неполадок](#устранение-неполадок)
-
----
-
-## Описание
-
-Компонент `ace_status.py` расширяет функциональность Moonraker, добавляя REST API эндпоинты для управления и мониторинга устройства ACE (Anycubic Color Engine Pro). Компонент позволяет:
-
-- ✅ Получать статус ACE устройства через HTTP REST API
-- ✅ Выполнять команды ACE через HTTP запросы
-- ✅ Подписываться на обновления статуса через WebSocket
-- ✅ Интегрироваться с веб-интерфейсами (Mainsail, Fluidd, кастомные)
-
-Компонент реализован по паттернам Moonraker API и использует стандартные механизмы для интеграции с Klipper.
+1. [描述](#描述)
+2. [安装](#安装)
+3. [组件架构](#组件架构)
+4. [API 端点](#api-端点)
+5. [命令详细说明](#命令详细说明)
+6. [WebSocket 订阅](#websocket-订阅)
+7. [使用示例](#使用示例)
+8. [故障排除](#故障排除)
 
 ---
 
-## Установка
+## 描述
 
-### Автоматическая установка (рекомендуется)
+`ace_status.py` 组件扩展了 Moonraker 的功能，添加了用于管理和监控 ACE（Anycubic Color Engine Pro）设备的 REST API 端点。该组件允许：
 
-Компонент устанавливается автоматически при выполнении скрипта `install.sh`:
+- ✅ 通过 HTTP REST API 获取 ACE 设备状态
+- ✅ 通过 HTTP 请求执行 ACE 命令
+- ✅ 通过 WebSocket 订阅状态更新
+- ✅ 与 Web 界面集成（Mainsail、Fluidd、自定义界面）
+
+该组件按照 Moonraker API 模式实现，并使用标准机制与 Klipper 集成。
+
+---
+
+## 安装
+
+### 自动安装（推荐）
+
+执行 `install.sh` 脚本时会自动安装该组件：
 
 ```bash
 cd ~/ValgACE
 ./install.sh
 ```
 
-**Что делает скрипт:**
+**脚本执行的操作：**
 
-1. **Создаёт симлинк:**
+1. **创建符号链接：**
    ```bash
    ~/moonraker/moonraker/components/ace_status.py → ~/ValgACE/moonraker/ace_status.py
    ```
 
-2. **Добавляет секцию в `moonraker.conf`:**
+2. **在 `moonraker.conf` 中添加段：**
    ```ini
    [ace_status]
    ```
 
-3. **Перезапускает Moonraker:**
+3. **重启 Moonraker：**
    ```bash
    sudo systemctl restart moonraker
    ```
 
-### Ручная установка
+### 手动安装
 
-Если автоматическая установка не подходит:
+如果自动安装不合适：
 
-1. **Скопируйте файл:**
+1. **复制文件：**
    ```bash
    cp ~/ValgACE/moonraker/ace_status.py ~/moonraker/moonraker/components/ace_status.py
    ```
 
-2. **Добавьте в `moonraker.conf`:**
+2. **添加到 `moonraker.conf`：**
    ```ini
    [ace_status]
    ```
 
-3. **Перезапустите Moonraker:**
+3. **重启 Moonraker：**
    ```bash
    sudo systemctl restart moonraker
    ```
 
-### Проверка установки
+### 验证安装
 
-После установки проверьте логи Moonraker:
+安装后检查 Moonraker 日志：
 
 ```bash
 tail -f ~/printer_data/logs/moonraker.log | grep -i ace
 ```
 
-Должно появиться сообщение:
+应该出现以下消息：
 ```
 ACE Status API extension loaded
 ```
 
-Проверьте доступность эндпоинта:
+检查端点是否可用：
 
 ```bash
 curl http://localhost:7125/server/ace/status
@@ -96,86 +96,86 @@ curl http://localhost:7125/server/ace/status
 
 ---
 
-## Архитектура компонента
+## 组件架构
 
-### Структура класса `AceStatus`
+### `AceStatus` 类结构
 
-Компонент состоит из одного класса `AceStatus`, который:
+该组件由一个 `AceStatus` 类组成，它：
 
-1. **Инициализируется** при загрузке Moonraker
-2. **Регистрирует эндпоинты** в Moonraker API
-3. **Подписывается на события** обновления статуса принтера
-4. **Кэширует данные** для быстрого доступа
+1. **初始化** 在 Moonraker 加载时
+2. **注册端点** 到 Moonraker API
+3. **订阅事件** 打印机状态更新
+4. **缓存数据** 以快速访问
 
-### Основные компоненты
+### 主要组件
 
-#### 1. Инициализация (`__init__`)
+#### 1. 初始化（`__init__`）
 
 ```python
 def __init__(self, config: ConfigHelper):
     self.server = config.get_server()
     self.klippy_apis = self.server.lookup_component('klippy_apis')
     
-    # Регистрация эндпоинтов
+    # 注册端点
     self.server.register_endpoint(...)
     
-    # Подписка на события
+    # 订阅事件
     self.server.register_event_handler(...)
 ```
 
-**Что происходит:**
-- Получает ссылку на сервер Moonraker
-- Получает компонент `klippy_apis` для выполнения G-code команд
-- Регистрирует три REST API эндпоинта
-- Подписывается на события обновления статуса принтера
-- Инициализирует кэш для хранения последнего статуса
+**执行过程：**
+- 获取 Moonraker 服务器的引用
+- 获取 `klippy_apis` 组件以执行 G-code 命令
+- 注册三个 REST API 端点
+- 订阅打印机状态更新事件
+- 初始化缓存以存储最新状态
 
-#### 2. Получение данных
+#### 2. 数据获取
 
-Компонент использует многоуровневую стратегию получения данных:
+组件使用多层数据获取策略：
 
-1. **Попытка через `query_objects()`** - получение данных напрямую из модуля `ace` через Klipper API
-2. **Fallback на кэш** - использование последнего известного статуса
-3. **Структура по умолчанию** - возврат пустой структуры, если данных нет
+1. **尝试通过 `query_objects()`** - 通过 Klipper API 直接从 `ace` 模块获取数据
+2. **回退到缓存** - 使用最后已知的状态
+3. **默认结构** - 如果没有数据则返回空结构
 
-**Почему так:**
-- Модуль `ace` может не экспортировать данные в статус принтера автоматически
-- Кэш позволяет быстро отвечать на запросы даже при временных проблемах
-- Структура по умолчанию гарантирует, что API всегда возвращает валидный JSON
+**原因：**
+- `ace` 模块可能不会自动将数据导出到打印机状态
+- 即使在临时问题时，缓存也能快速响应请求
+- 默认结构保证 API 始终返回有效的 JSON
 
-#### 3. Обработка команд
+#### 3. 命令处理
 
-Компонент поддерживает несколько форматов передачи параметров:
+组件支持多种参数传递格式：
 
-1. **JSON body** (рекомендуется):
+1. **JSON body**（推荐）：
    ```json
    {"command": "ACE_CHANGE_TOOL", "params": {"TOOL": 0}}
    ```
 
-2. **Query параметры**:
+2. **查询参数**：
    ```
    ?command=ACE_CHANGE_TOOL&TOOL=0
    ```
 
-3. **Комбинированный формат**:
+3. **组合格式**：
    ```
    ?command=ACE_CHANGE_TOOL&params={"TOOL":0}
    ```
 
 ---
 
-## API Эндпоинты
+## API 端点
 
 ### GET /server/ace/status
 
-Получить полный статус ACE устройства.
+获取 ACE 设备的完整状态。
 
-**Запрос:**
+**请求：**
 ```bash
 curl http://localhost:7125/server/ace/status
 ```
 
-**Ответ:**
+**响应：**
 ```json
 {
   "result": {
@@ -229,20 +229,20 @@ curl http://localhost:7125/server/ace/status
 }
 ```
 
-**Поля ответа:**
+**响应字段：**
 
-| Поле | Тип | Описание |
+| 字段 | 类型 | 描述 |
 |------|-----|----------|
-| `status` | string | Статус устройства: `"ready"`, `"busy"`, `"unknown"` |
-| `model` | string | Модель устройства |
-| `firmware` | string | Версия прошивки |
-| `dryer` | object | Статус сушилки (см. ниже) |
-| `temp` | number | Текущая температура сушилки (°C) |
-| `fan_speed` | number | Скорость вентилятора (RPM) |
-| `enable_rfid` | number | RFID включен (1) или выключен (0) |
-| `slots` | array | Массив информации о слотах (см. ниже) |
+| `status` | string | 设备状态：`"ready"`、`"busy"`、`"unknown"` |
+| `model` | string | 设备型号 |
+| `firmware` | string | 固件版本 |
+| `dryer` | object | 烘干机状态（见下文） |
+| `temp` | number | 当前烘干温度（°C） |
+| `fan_speed` | number | 风扇速度（RPM） |
+| `enable_rfid` | number | RFID 启用（1）或禁用（0） |
+| `slots` | array | 料槽信息数组（见下文） |
 
-**Объект `dryer`:**
+**`dryer` 对象：**
 ```json
 {
   "status": "stop" | "drying",
@@ -252,7 +252,7 @@ curl http://localhost:7125/server/ace/status
 }
 ```
 
-**Объект слота:**
+**料槽对象：**
 ```json
 {
   "index": 0-3,
@@ -264,24 +264,24 @@ curl http://localhost:7125/server/ace/status
 }
 ```
 
-**RFID статусы:**
-- `0` - Не найдено
-- `1` - Ошибка идентификации
-- `2` - Идентифицировано
-- `3` - Идентификация в процессе
+**RFID 状态：**
+- `0` - 未找到
+- `1` - 识别错误
+- `2` - 已识别
+- `3` - 识别中
 
 ---
 
 ### GET /server/ace/slots
 
-Получить информацию только о слотах филамента.
+仅获取耗材料槽信息。
 
-**Запрос:**
+**请求：**
 ```bash
 curl http://localhost:7125/server/ace/slots
 ```
 
-**Ответ:**
+**响应：**
 ```json
 {
   "result": {
@@ -300,19 +300,19 @@ curl http://localhost:7125/server/ace/slots
 }
 ```
 
-**Использование:**
-Удобно для получения только информации о слотах без полного статуса устройства.
+**用途：**
+方便仅获取料槽信息，无需完整的设备状态。
 
 ---
 
 ### POST /server/ace/command
 
-Выполнить команду ACE через REST API.
+通过 REST API 执行 ACE 命令。
 
-**Метод:** `POST`  
-**Content-Type:** `application/json` (для JSON body) или query параметры
+**方法：** `POST`  
+**Content-Type：** `application/json`（用于 JSON body）或查询参数
 
-**Формат запроса (JSON body):**
+**请求格式（JSON body）：**
 ```json
 {
   "command": "ACE_COMMAND_NAME",
@@ -323,12 +323,12 @@ curl http://localhost:7125/server/ace/slots
 }
 ```
 
-**Формат запроса (query параметры):**
+**请求格式（查询参数）：**
 ```
 POST /server/ace/command?command=ACE_COMMAND_NAME&PARAM1=value1&PARAM2=value2
 ```
 
-**Ответ при успехе:**
+**成功响应：**
 ```json
 {
   "result": {
@@ -339,7 +339,7 @@ POST /server/ace/command?command=ACE_COMMAND_NAME&PARAM1=value1&PARAM2=value2
 }
 ```
 
-**Ответ при ошибке:**
+**错误响应：**
 ```json
 {
   "result": {
@@ -350,11 +350,11 @@ POST /server/ace/command?command=ACE_COMMAND_NAME&PARAM1=value1&PARAM2=value2
 }
 ```
 
-**Обработка параметров:**
+**参数处理：**
 
-Компонент поддерживает несколько способов передачи параметров:
+组件支持多种参数传递方式：
 
-1. **JSON body с объектом `params`:**
+1. **带 `params` 对象的 JSON body：**
    ```json
    {
      "command": "ACE_FEED",
@@ -366,91 +366,91 @@ POST /server/ace/command?command=ACE_COMMAND_NAME&PARAM1=value1&PARAM2=value2
    }
    ```
 
-2. **Query параметры напрямую:**
+2. **直接查询参数：**
    ```
    POST /server/ace/command?command=ACE_FEED&INDEX=0&LENGTH=50&SPEED=25
    ```
 
-3. **Комбинированный формат:**
+3. **组合格式：**
    ```
    POST /server/ace/command?command=ACE_FEED&params={"INDEX":0,"LENGTH":50,"SPEED":25}
    ```
 
-**Преобразование параметров:**
+**参数转换：**
 
-- Булевы значения (`true`/`false`) преобразуются в `1`/`0`
-- Числа преобразуются в строки
-- Все параметры объединяются в G-code команду: `COMMAND PARAM1=value1 PARAM2=value2`
+- 布尔值（`true`/`false`）转换为 `1`/`0`
+- 数字转换为字符串
+- 所有参数组合成 G-code 命令：`COMMAND PARAM1=value1 PARAM2=value2`
 
 ---
 
-## Подробное описание команд
+## 命令详细说明
 
-### Команды управления инструментом
+### 工具管理命令
 
 #### ACE_CHANGE_TOOL
 
-Смена инструмента (загрузка/выгрузка филамента).
+更换工具（加载/卸载耗材）。
 
-**Параметры:**
-- `TOOL` (integer, обязательный): Индекс слота (0-3) или `-1` для выгрузки
+**参数：**
+- `TOOL`（整数，必需）：料槽索引（0-3）或 `-1` 表示卸载
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
   -d '{"command":"ACE_CHANGE_TOOL","params":{"TOOL":0}}'
 ```
 
-**Что происходит:**
-1. Выполняется макрос `_ACE_PRE_TOOLCHANGE`
-2. Откат филамента из предыдущего слота (если был)
-3. Ожидание готовности слота
-4. Парковка филамента нового слота к хотэнду
-5. Выполнение макроса `_ACE_POST_TOOLCHANGE`
+**执行过程：**
+1. 执行宏 `_ACE_PRE_TOOLCHANGE`
+2. 从上一个料槽回退耗材（如果有）
+3. 等待料槽就绪
+4. 将新料槽的耗材停靠在热端
+5. 执行宏 `_ACE_POST_TOOLCHANGE`
 
 ---
 
 #### ACE_PARK_TO_TOOLHEAD
 
-Парковка филамента выбранного слота к хотэнду.
+将选定料槽的耗材停靠在热端。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
   -d '{"command":"ACE_PARK_TO_TOOLHEAD","params":{"INDEX":0}}'
 ```
 
-**Что происходит:**
-1. Проверка готовности слота
-2. Запуск feed assist для слота
-3. Мониторинг счетчика `feed_assist_count`
-4. Автоматическое завершение при достижении `park_hit_count` стабильных проверок
-5. Остановка feed assist
+**执行过程：**
+1. 检查料槽就绪状态
+2. 启动料槽的送丝辅助
+3. 监控 `feed_assist_count` 计数器
+4. 达到 `park_hit_count` 次稳定检查时自动完成
+5. 停止送丝辅助
 
-**Особенности:**
-- Использует асинхронный мониторинг через `_handle_response`
-- Автоматически определяет завершение парковки
-- Обрабатывает ошибки (например, если feed assist не работает)
+**特点：**
+- 使用 `_handle_response` 进行异步监控
+- 自动检测停靠完成
+- 处理错误（例如，如果送丝辅助不工作）
 
 ---
 
-### Команды управления подачей
+### 送料控制命令
 
 #### ACE_FEED
 
-Подача филамента на заданную длину.
+按指定长度送出耗材。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
-- `LENGTH` (integer, обязательный): Длина подачи в мм
-- `SPEED` (integer, опциональный): Скорость подачи (мм/с), по умолчанию из конфига
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
+- `LENGTH`（整数，必需）：送料长度（毫米）
+- `SPEED`（整数，可选）：送料速度（毫米/秒），默认使用配置值
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -461,15 +461,15 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 #### ACE_RETRACT
 
-Откат филамента на заданную длину.
+按指定长度回退耗材。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
-- `LENGTH` (integer, обязательный): Длина отката в мм
-- `SPEED` (integer, опциональный): Скорость отката (мм/с), по умолчанию из конфига
-- `MODE` (integer, опциональный): Режим отката (0=обычный, 1=улучшенный), по умолчанию из конфига
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
+- `LENGTH`（整数，必需）：回退长度（毫米）
+- `SPEED`（整数，可选）：回退速度（毫米/秒），默认使用配置值
+- `MODE`（整数，可选）：回退模式（0=普通，1=增强），默认使用配置值
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -480,13 +480,13 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 #### ACE_UPDATE_FEEDING_SPEED
 
-Обновление скорости подачи во время работы.
+在工作期间更新送料速度。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
-- `SPEED` (integer, обязательный): Новая скорость подачи (мм/с)
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
+- `SPEED`（整数，必需）：新的送料速度（毫米/秒）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -497,13 +497,13 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 #### ACE_UPDATE_RETRACT_SPEED
 
-Обновление скорости отката во время работы.
+在工作期间更新回退速度。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
-- `SPEED` (integer, обязательный): Новая скорость отката (мм/с)
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
+- `SPEED`（整数，必需）：新的回退速度（毫米/秒）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -514,12 +514,12 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 #### ACE_STOP_FEED
 
-Остановка подачи филамента.
+停止耗材送料。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -530,12 +530,12 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 #### ACE_STOP_RETRACT
 
-Остановка отката филамента.
+停止耗材回退。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -544,38 +544,38 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 ---
 
-### Команды управления сушкой
+### 烘干控制命令
 
 #### ACE_START_DRYING
 
-Запуск процесса сушки филамента.
+启动耗材烘干过程。
 
-**Параметры:**
-- `TEMP` (integer, обязательный): Целевая температура (20-55°C, ограничено `max_dryer_temperature`)
-- `DURATION` (integer, обязательный): Длительность сушки в минутах
+**参数：**
+- `TEMP`（整数，必需）：目标温度（20-55°C，受 `max_dryer_temperature` 限制）
+- `DURATION`（整数，必需）：烘干持续时间（分钟）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
   -d '{"command":"ACE_START_DRYING","params":{"TEMP":50,"DURATION":240}}'
 ```
 
-**Что происходит:**
-- Устанавливается целевая температура
-- Включается вентилятор (7000 RPM)
-- Запускается таймер на указанное время
-- Статус сушки обновляется в реальном времени
+**执行过程：**
+- 设置目标温度
+- 开启风扇（7000 RPM）
+- 启动指定时间的定时器
+- 烘干状态实时更新
 
 ---
 
 #### ACE_STOP_DRYING
 
-Остановка процесса сушки.
+停止烘干过程。
 
-**Параметры:** Нет
+**参数：** 无
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -584,35 +584,35 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 ---
 
-### Команды управления feed assist
+### 送丝辅助控制命令
 
 #### ACE_ENABLE_FEED_ASSIST
 
-Включение feed assist для слота (автоматическая подача при печати).
+为料槽启用送丝辅助（打印时自动送料）。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
   -d '{"command":"ACE_ENABLE_FEED_ASSIST","params":{"INDEX":0}}'
 ```
 
-**Использование:**
-Обычно включается автоматически при смене инструмента, но можно включить вручную для непрерывной подачи.
+**用途：**
+通常在换刀时自动启用，但可以手动启用以实现连续送料。
 
 ---
 
 #### ACE_DISABLE_FEED_ASSIST
 
-Выключение feed assist для слота.
+为料槽禁用送丝辅助。
 
-**Параметры:**
-- `INDEX` (integer, опциональный): Индекс слота (0-3), по умолчанию текущий активный
+**参数：**
+- `INDEX`（整数，可选）：料槽索引（0-3），默认为当前活动料槽
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -621,79 +621,79 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 ---
 
-### Команды режима Infinity Spool
+### 无限料盘模式命令
 
 #### ACE_SET_INFINITY_SPOOL_ORDER
 
-Установка порядка смены слотов для режима бесконечной катушки.
+设置无限料盘模式的料槽切换顺序。
 
-**Параметры:**
-- `ORDER` (string, обязательный): Порядок слотов в формате `"0,1,2,3"` или `"0,1,none,3"` (используйте `none` для пустых слотов)
+**参数：**
+- `ORDER`（字符串，必需）：料槽顺序，格式为 `"0,1,2,3"` 或 `"0,1,none,3"`（使用 `none` 表示空料槽）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
   -d '{"command":"ACE_SET_INFINITY_SPOOL_ORDER","params":{"ORDER":"0,1,none,3"}}'
 ```
 
-**Что происходит:**
-- Сохраняется порядок в переменную `ace_infsp_order`
-- Сбрасывается позиция в переменную `ace_infsp_position = 0`
-- Порядок используется при выполнении `ACE_INFINITY_SPOOL`
+**执行过程：**
+- 将顺序保存到变量 `ace_infsp_order`
+- 重置位置到变量 `ace_infsp_position = 0`
+- 执行 `ACE_INFINITY_SPOOL` 时使用该顺序
 
 ---
 
 #### ACE_INFINITY_SPOOL
 
-Автоматическая смена катушки при окончании филамента (без отката).
+耗材结束时自动切换料槽（不回退）。
 
-**Параметры:** Нет
+**参数：** 无
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
   -d '{"command":"ACE_INFINITY_SPOOL"}'
 ```
 
-**Что происходит:**
-1. Проверка включенности режима `infinity_spool_mode`
-2. Определение текущего слота из переменной `ace_current_index`
-3. Поиск следующего слота в порядке `ace_infsp_order`
-4. Пропуск слотов со значением `none`
-5. Выполнение макроса `_ACE_PRE_INFINITYSPOOL`
-6. Парковка филамента нового слота
-7. Выполнение макроса `_ACE_POST_INFINITYSPOOL`
-8. Сохранение нового текущего слота и позиции
+**执行过程：**
+1. 检查 `infinity_spool_mode` 模式是否启用
+2. 从变量 `ace_current_index` 确定当前料槽
+3. 在顺序 `ace_infsp_order` 中查找下一个料槽
+4. 跳过值为 `none` 的料槽
+5. 执行宏 `_ACE_PRE_INFINITYSPOOL`
+6. 停靠新料槽的耗材
+7. 执行宏 `_ACE_POST_INFINITYSPOOL`
+8. 保存新的当前料槽和位置
 
-**Требования:**
-- Режим `infinity_spool_mode` должен быть включен в конфигурации
-- Порядок должен быть установлен через `ACE_SET_INFINITY_SPOOL_ORDER`
-- Минимум один слот в порядке должен быть готов (`ready`)
+**要求：**
+- 必须在配置中启用 `infinity_spool_mode` 模式
+- 必须通过 `ACE_SET_INFINITY_SPOOL_ORDER` 设置顺序
+- 顺序中至少有一个料槽必须就绪（`ready`）
 
 ---
 
-### Информационные команды
+### 信息命令
 
 #### ACE_STATUS
 
-Получение статуса устройства (через G-code, не через API).
+获取设备状态（通过 G-code，而非 API）。
 
-**Параметры:** Нет
+**参数：** 无
 
-**Примечание:** Для получения статуса через API используйте `GET /server/ace/status`
+**注意：** 要通过 API 获取状态，请使用 `GET /server/ace/status`
 
 ---
 
 #### ACE_FILAMENT_INFO
 
-Получение информации о филаменте в слоте.
+获取料槽中的耗材信息。
 
-**Параметры:**
-- `INDEX` (integer, обязательный): Индекс слота (0-3)
+**参数：**
+- `INDEX`（整数，必需）：料槽索引（0-3）
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -704,13 +704,13 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 #### ACE_DEBUG
 
-Отладочная команда для прямого вызова методов ACE API.
+用于直接调用 ACE API 方法的调试命令。
 
-**Параметры:**
-- `METHOD` (string, обязательный): Имя метода ACE API (например, `"get_info"`, `"get_status"`)
-- `PARAMS` (string, опциональный): JSON строка с параметрами метода
+**参数：**
+- `METHOD`（字符串，必需）：ACE API 方法名称（例如，`"get_info"`、`"get_status"`）
+- `PARAMS`（字符串，可选）：方法参数的 JSON 字符串
 
-**Пример:**
+**示例：**
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
@@ -719,11 +719,11 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 ---
 
-## WebSocket подписка
+## WebSocket 订阅
 
-Компонент поддерживает подписку на обновления статуса ACE через WebSocket.
+该组件支持通过 WebSocket 订阅 ACE 状态更新。
 
-### Подключение к WebSocket
+### 连接到 WebSocket
 
 ```javascript
 const ws = new WebSocket('ws://localhost:7125/websocket');
@@ -733,7 +733,7 @@ ws.onopen = () => {
 };
 ```
 
-### Подписка на обновления статуса принтера
+### 订阅打印机状态更新
 
 ```javascript
 ws.send(JSON.stringify({
@@ -748,7 +748,7 @@ ws.send(JSON.stringify({
 }));
 ```
 
-### Получение обновлений
+### 接收更新
 
 ```javascript
 ws.onmessage = (event) => {
@@ -758,12 +758,12 @@ ws.onmessage = (event) => {
         const aceData = data.params[0]?.ace;
         if (aceData) {
             console.log('ACE Status Update:', aceData);
-            // Обновить UI
+            // 更新 UI
             updateAceUI(aceData);
         }
     }
     
-    // Событие от компонента ace_status
+    // 来自 ace_status 组件的事件
     if (data.method === "notify_ace_status_update") {
         const aceData = data.params[0];
         console.log('ACE Status Update:', aceData);
@@ -772,22 +772,22 @@ ws.onmessage = (event) => {
 };
 ```
 
-### События компонента
+### 组件事件
 
-Компонент отправляет событие `ace:status_update` при обновлении статуса:
+组件在状态更新时发送 `ace:status_update` 事件：
 
 ```javascript
-// Событие отправляется через:
+// 事件通过以下方式发送：
 self.server.send_event("ace:status_update", ace_data)
 ```
 
 ---
 
-## Примеры использования
+## 使用示例
 
 ### JavaScript/TypeScript
 
-#### Получение статуса
+#### 获取状态
 
 ```javascript
 async function getAceStatus() {
@@ -796,13 +796,13 @@ async function getAceStatus() {
     return data.result;
 }
 
-// Использование
+// 使用
 const status = await getAceStatus();
 console.log('ACE Status:', status);
 console.log('Slots:', status.slots);
 ```
 
-#### Выполнение команды
+#### 执行命令
 
 ```javascript
 async function executeAceCommand(command, params = {}) {
@@ -814,7 +814,7 @@ async function executeAceCommand(command, params = {}) {
     return await response.json();
 }
 
-// Пример: смена инструмента
+// 示例：更换工具
 const result = await executeAceCommand('ACE_CHANGE_TOOL', { TOOL: 0 });
 if (result.result.success) {
     console.log('Tool changed successfully');
@@ -823,7 +823,7 @@ if (result.result.success) {
 }
 ```
 
-#### Мониторинг статуса в реальном времени
+#### 实时监控状态
 
 ```javascript
 class AceStatusMonitor {
@@ -834,7 +834,7 @@ class AceStatusMonitor {
     
     setupWebSocket() {
         this.ws.onopen = () => {
-            // Подписка на обновления
+            // 订阅更新
             this.ws.send(JSON.stringify({
                 jsonrpc: "2.0",
                 method: "printer.objects.subscribe",
@@ -858,17 +858,17 @@ class AceStatusMonitor {
     
     onStatusUpdate(data) {
         console.log('Status updated:', data);
-        // Обновить UI
+        // 更新 UI
     }
 }
 
-// Использование
+// 使用
 const monitor = new AceStatusMonitor();
 ```
 
 ### Python
 
-#### Получение статуса
+#### 获取状态
 
 ```python
 import requests
@@ -877,13 +877,13 @@ def get_ace_status():
     response = requests.get('http://localhost:7125/server/ace/status')
     return response.json()['result']
 
-# Использование
+# 使用
 status = get_ace_status()
 print(f"ACE Status: {status['status']}")
 print(f"Slots: {len(status['slots'])}")
 ```
 
-#### Выполнение команды
+#### 执行命令
 
 ```python
 import requests
@@ -897,7 +897,7 @@ def execute_ace_command(command, params=None):
     response = requests.post(url, json=data)
     return response.json()['result']
 
-# Пример: парковка филамента
+# 示例：停靠耗材
 result = execute_ace_command('ACE_PARK_TO_TOOLHEAD', {'INDEX': 0})
 if result['success']:
     print('Command executed successfully')
@@ -907,19 +907,19 @@ else:
 
 ### cURL
 
-#### Получение статуса
+#### 获取状态
 
 ```bash
 curl http://localhost:7125/server/ace/status
 ```
 
-#### Получение слотов
+#### 获取料槽
 
 ```bash
 curl http://localhost:7125/server/ace/slots
 ```
 
-#### Смена инструмента
+#### 更换工具
 
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
@@ -927,7 +927,7 @@ curl -X POST http://localhost:7125/server/ace/command \
   -d '{"command":"ACE_CHANGE_TOOL","params":{"TOOL":0}}'
 ```
 
-#### Парковка филамента
+#### 停靠耗材
 
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
@@ -935,7 +935,7 @@ curl -X POST http://localhost:7125/server/ace/command \
   -d '{"command":"ACE_PARK_TO_TOOLHEAD","params":{"INDEX":0}}'
 ```
 
-#### Запуск сушки
+#### 启动烘干
 
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
@@ -943,7 +943,7 @@ curl -X POST http://localhost:7125/server/ace/command \
   -d '{"command":"ACE_START_DRYING","params":{"TEMP":50,"DURATION":240}}'
 ```
 
-#### Установка порядка Infinity Spool
+#### 设置无限料盘顺序
 
 ```bash
 curl -X POST http://localhost:7125/server/ace/command \
@@ -953,153 +953,152 @@ curl -X POST http://localhost:7125/server/ace/command \
 
 ---
 
-## Устранение неполадок
+## 故障排除
 
-### Компонент не загружается
+### 组件未加载
 
-**Симптомы:**
-- В логах Moonraker нет сообщения "ACE Status API extension loaded"
-- Эндпоинты недоступны (404 или 405 ошибка)
+**症状：**
+- Moonraker 日志中没有 "ACE Status API extension loaded" 消息
+- 端点不可用（404 或 405 错误）
 
-**Решения:**
+**解决方案：**
 
-1. **Проверьте наличие файла:**
+1. **检查文件是否存在：**
    ```bash
    ls -la ~/moonraker/moonraker/components/ace_status.py
    ```
 
-2. **Проверьте секцию в moonraker.conf:**
+2. **检查 moonraker.conf 中的段：**
    ```bash
    grep -A 1 "\[ace_status\]" ~/printer_data/config/moonraker.conf
    ```
 
-3. **Проверьте логи Moonraker на ошибки:**
+3. **检查 Moonraker 日志中的错误：**
    ```bash
    tail -f ~/printer_data/logs/moonraker.log | grep -i error
    ```
 
-4. **Проверьте синтаксис Python файла:**
+4. **检查 Python 文件语法：**
    ```bash
    python3 -m py_compile ~/moonraker/moonraker/components/ace_status.py
    ```
 
 ---
 
-### Эндпоинты возвращают ошибку 404
+### 端点返回 404 错误
 
-**Причина:** Компонент не загружен или путь неправильный.
+**原因：** 组件未加载或路径不正确。
 
-**Решение:**
-1. Убедитесь, что файл существует и является симлинком
-2. Перезапустите Moonraker: `sudo systemctl restart moonraker`
-3. Проверьте логи на наличие ошибок загрузки
-
----
-
-### Эндпоинты возвращают ошибку 405 (Method Not Allowed)
-
-**Причина:** Используется неправильный HTTP метод.
-
-**Решение:**
-- `/server/ace/status` - используйте `GET`
-- `/server/ace/slots` - используйте `GET`
-- `/server/ace/command` - используйте `POST`
+**解决方案：**
+1. 确保文件存在且是符号链接
+2. 重启 Moonraker：`sudo systemctl restart moonraker`
+3. 检查日志中是否有加载错误
 
 ---
 
-### Команды не выполняются
+### 端点返回 405 错误（Method Not Allowed）
 
-**Симптомы:**
-- Запрос возвращает `{"success": false, "error": "..."}`
+**原因：** 使用了错误的 HTTP 方法。
 
-**Решения:**
+**解决方案：**
+- `/server/ace/status` - 使用 `GET`
+- `/server/ace/slots` - 使用 `GET`
+- `/server/ace/command` - 使用 `POST`
 
-1. **Проверьте формат команды:**
+---
+
+### 命令未执行
+
+**症状：**
+- 请求返回 `{"success": false, "error": "..."}`
+
+**解决方案：**
+
+1. **检查命令格式：**
    ```bash
-   # Правильно
+   # 正确
    curl -X POST http://localhost:7125/server/ace/command \
      -H "Content-Type: application/json" \
      -d '{"command":"ACE_CHANGE_TOOL","params":{"TOOL":0}}'
    
-   # Неправильно (GET вместо POST)
+   # 错误（使用 GET 而非 POST）
    curl http://localhost:7125/server/ace/command?command=ACE_CHANGE_TOOL
    ```
 
-2. **Проверьте параметры команды:**
-   - Убедитесь, что все обязательные параметры переданы
-   - Проверьте типы параметров (числа должны быть числами, не строками)
+2. **检查命令参数：**
+   - 确保传递了所有必需参数
+   - 检查参数类型（数字应该是数字，而不是字符串）
 
-3. **Проверьте логи Klipper:**
+3. **检查 Klipper 日志：**
    ```bash
    tail -f ~/printer_data/logs/klippy.log | grep -i ace
    ```
 
 ---
 
-### Статус всегда возвращает структуру по умолчанию
+### 状态始终返回默认结构
 
-**Причина:** Модуль `ace` не экспортирует данные в статус принтера.
+**原因：** `ace` 模块未将数据导出到打印机状态。
 
-**Решение:**
-Это нормальное поведение, если модуль `ace` не настроен на экспорт данных. Компонент использует fallback стратегию:
-1. Попытка получить данные через `query_objects()`
-2. Использование кэша
-3. Возврат структуры по умолчанию
+**解决方案：**
+这是正常行为，如果 `ace` 模块未配置为导出数据。组件使用回退策略：
+1. 尝试通过 `query_objects()` 获取数据
+2. 使用缓存
+3. 返回默认结构
 
-Для получения реальных данных можно:
-- Модифицировать модуль `ace.py` для экспорта данных в статус
-- Использовать G-code команду `ACE_STATUS` и парсить текстовый ответ (требует доработки компонента)
-
----
-
-### WebSocket не получает обновления
-
-**Причина:** Модуль `ace` не отправляет события обновления статуса.
-
-**Решение:**
-1. Убедитесь, что модуль `ace` экспортирует данные в статус принтера
-2. Проверьте подписку на события в компоненте
-3. Проверьте логи Moonraker на наличие событий
+要获取真实数据可以：
+- 修改 `ace.py` 模块以将数据导出到状态
+- 使用 G-code 命令 `ACE_STATUS` 并解析文本响应（需要改进组件）
 
 ---
 
-## Дополнительная информация
+### WebSocket 未收到更新
 
-### Интеграция с веб-интерфейсами
+**原因：** `ace` 模块未发送状态更新事件。
 
-Компонент можно использовать с:
-- **Mainsail** - через кастомные компоненты
-- **Fluidd** - через кастомные компоненты
-- **Кастомные веб-интерфейсы** - через REST API и WebSocket
-- **[ValgACE Dashboard](../../web-interface/README.md)** - готовый веб-интерфейс для управления ACE
-
-Примеры интеграции см. в `web-interface/`:
-- `ace-dashboard.html` - полнофункциональный веб-интерфейс с Vue.js
-- `ace-dashboard.css` - стили интерфейса
-- `ace-dashboard.js` - логика работы с API
-
-### Производительность
-
-- **Кэширование:** Компонент кэширует последний известный статус для быстрого ответа
-- **Асинхронность:** Все операции асинхронные, не блокируют Moonraker
-- **Обработка ошибок:** Все ошибки логируются и возвращаются в ответе API
-
-### Безопасность
-
-- Компонент использует стандартные механизмы безопасности Moonraker
-- Все команды выполняются через Klipper API с проверкой прав доступа
-- Параметры валидируются перед выполнением команд
+**解决方案：**
+1. 确保 `ace` 模块将数据导出到打印机状态
+2. 检查组件事件订阅
+3. 检查 Moonraker 日志中是否有事件
 
 ---
 
-## См. также
+## 附加信息
 
-- [Руководство по установке](../INSTALLATION.md) - установка ValgACE
-- [Справочник команд](../COMMANDS.md) - все команды G-code ACE
-- [Руководство по конфигурации](../CONFIGURATION.md) - настройка параметров
-- [Протокол ACE](../Protocol.md) - техническая документация протокола
+### 与 Web 界面集成
+
+该组件可用于：
+- **Mainsail** - 通过自定义组件
+- **Fluidd** - 通过自定义组件
+- **自定义 Web 界面** - 通过 REST API 和 WebSocket
+- **[ValgACE Dashboard](../../web-interface/README.md)** - 现成的 ACE 管理 Web 界面
+
+集成示例见 `web-interface/`：
+- `index.html` - 功能齐全的 Vue.js Web 界面
+- `css/ace-dashboard.css` - 界面样式
+- `js/ace-dashboard.js` - API 工作逻辑
+
+### 性能
+
+- **缓存：** 组件缓存最新已知状态以快速响应
+- **异步：** 所有操作都是异步的，不阻塞 Moonraker
+- **错误处理：** 所有错误都被记录并在 API 响应中返回
+
+### 安全性
+
+- 组件使用 Moonraker 的标准安全机制
+- 所有命令都通过具有访问权限检查的 Klipper API 执行
+- 参数在执行命令前进行验证
 
 ---
 
-*Дата последнего обновления: 2025*
+## 另请参阅
 
+- [安装指南](../INSTALLATION.md) - 安装 ValgACE
+- [命令参考](../COMMANDS.md) - 所有 ACE G-code 命令
+- [配置指南](../CONFIGURATION.md) - 参数设置
+- [ACE 协议](../PROTOCOL.md) - 技术协议文档
+
+---
+
+*最后更新日期：2025*

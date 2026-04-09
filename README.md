@@ -1,287 +1,291 @@
-# ValgACE - Драйвер для Anycubic Color Engine Pro
+# ValgACE - Anycubic 彩色引擎专业版驱动程序
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-**ValgACE** - модуль для Klipper, обеспечивающий полное управление устройством автоматической смены филамента Anycubic Color Engine Pro (ACE Pro).
+**ValgACE** - Klipper 模块，提供 Anycubic Color Engine Pro (ACE Pro) 自动换料装置的完整管理功能。
 
-**Основной репозитарий переезжает на [GitVerse](https://gitverse.ru/Agrloki/ValgAce)**
+[English](./README_EN.md) | **简体中文** | [Русский](./README_RU.md) | [日本語](./README_JA.md)
 
-**ace-solo** [ace-solo](https://github.com/agrloki/ace-solo) Автономное приложение на Python для управления Anycubic ACE Pro без использования Klipper.
+**主要仓库迁移到 [GitVerse](https://gitverse.ru/Agrloki/ValgAce)**
 
-**acepro-mmu-dashboard** [acepro-mmu-dashboard](https://github.com/ducati1198/acepro-mmu-dashboard) Альтернативный вэб интерфейс от @ducati1198
-## 📋 Содержание
+**ace-solo** [ace-solo](https://github.com/agrloki/ace-solo) 独立 Python 应用程序，用于无需 Klipper 管理 Anycubic ACE Pro。
 
-- [Описание](#описание)
-- [Возможности](#возможности)
-- [Системные требования](#системные-требования)
-- [Быстрый старт](#быстрый-старт)
-- [Подключение устройства](#подключение-устройства)
-- [Документация](#документация)
-- [Поддержка](#поддержка)
-- [Благодарности](#благодарности)
+**acepro-mmu-dashboard** [acepro-mmu-dashboard](https://github.com/ducati1198/acepro-mmu-dashboard) @ducati1198 提供的替代网页界面
 
-## Описание
+## 📋 目录
 
-ValgACE представляет собой полнофункциональный драйвер для управления устройством Anycubic Color Engine Pro через Klipper. Драйвер обеспечивает автоматическую смену филамента между 4 слотами, управление сушкой, подачу и откат филамента, а также поддержку RFID меток.
+- [简介](#简介)
+- [功能](#功能)
+- [系统要求](#系统要求)
+- [快速开始](#快速开始)
+- [设备连接](#设备连接)
+- [文档](#文档)
+- [支持](#支持)
+- [致谢](#致谢)
 
-### Статус проекта
+## 简介
 
-**Статус:** Стабильная версия
+ValgACE 是一个功能完整的驱动程序，用于通过 Klipper 管理 Anycubic Color Engine Pro 设备。该驱动程序提供 4 个槽位之间的自动换料、干燥管理、进料和回退功能，以及 RFID 标签支持。
 
-**Подтверждено на:** Sovol SV08, Kingroon KLP1, Kingroon KP3S Pro V2, custom klipper 3d printers.
+### 项目状态
 
-**Основан на:** [DuckACE](https://github.com/utkabobr/DuckACE)
+**状态：** 开发版本
 
-**Планы на будущее:**
-- Пока нет) Все хотелки реализованы.
+**验证平台：** Voron Trident 3D打印机
 
-## Возможности
+**基于：** [DuckACE](https://github.com/utkabobr/DuckACE)
 
-✅ **Управление филаментом**
-- Автоматическая смена инструмента (4 слота)
-- Подача и откат филамента с настраиваемой скоростью
-- Автоматическая парковка филамента к соплу
-- Режим бесконечной катушки (infinity spool) с настраиваемым порядком слотов
-- **Infinity Spool Auto-trigger** - автоматический мониторинг и смена слота при окончании филамента
+**未来计划：**
+- 暂无计划 😊 所有需求都已实现。
 
-✅ **Управление сушкой**
-- Программируемая сушка филамента
-- Контроль температуры и времени
-- Автоматическое управление вентиляторами
+## 功能
 
-✅ **Информационные функции**
-- Мониторинг состояния устройства
-- Информация о филаменте (RFID)
-- Отладочные команды
+✅ **取料管理**
+- 自动换色（4 个槽位）
+- 可调速度的进料和回退
+- 自动装载到喷嘴
+- 无限线轴模式（infinity spool），可自定义槽位顺序
+- **无限线轴自动触发** - 自动监控并在耗材用尽时更换槽位
 
-✅ **Интеграция с Klipper**
-- Полная поддержка макросов G-code
-- Асинхронная обработка команд
+✅ **干燥管理**
+- 可编程耗材干燥
+- 温度和时间控制
+- 自动风扇管理
 
-✅ **Управление соединением**
-- Команды управления подключением (ACE_CONNECT, ACE_DISCONNECT, ACE_CONNECTION_STATUS)
-- Поддержка внешнего датчика филамента
-- Команда проверки статуса датчика (ACE_CHECK_FILAMENT_SENSOR)
-- Команда переподключения при ошибках (ACE_RECONNECT)
-- Настраиваемый макрос паузы
+✅ **信息功能**
+- 设备状态监控
+- 耗材信息（RFID）
+- 调试命令
 
-✅ **Маппинг слотов**
-- Переназначение индексов Klipper (T0-T3) на физические слоты устройства
-- Команды получения, установки и сброса маппинга
-- Макрос для массовой настройки слотов
+✅ **Klipper 集成**
+- 完整的 G-code 宏支持
+- 异步命令处理
 
-✅ **Агрессивная парковка**
-- Альтернативный алгоритм парковки с использованием датчика филамента
-- Настраиваемые параметры: максимальная дистанция, скорость, таймаут
-- Подходит для принтеров с длинным трактом подачи
+✅ **连接管理**
+- 连接管理命令（ACE_CONNECT、ACE_DISCONNECT、ACE_CONNECTION_STATUS）
+- 外部耗材传感器支持
+- 耗材传感器状态检查命令（ACE_CHECK_FILAMENT_SENSOR）
+- 错误恢复重新连接（ACE_RECONNECT）
+- 可自定义的暂停宏
 
-- Совместимость с существующими конфигурациями
+✅ **槽位映射**
+- 将 Klipper 索引（T0-T3）重新分配到设备物理槽位
+- 获取、设置和重置映射的命令
+- 批量配置槽位的宏
 
-✅ **REST API через Moonraker**
-- Получение статуса ACE через HTTP API
-- Выполнение команд через REST эндпоинты
-- WebSocket подписка на обновления статуса
+✅ **强制停泊**
+- 使用耗材传感器的替代停泊算法
+- 可自定义参数：最大距离、速度、超时
+- 适合长进料轨道的打印机
 
+- 与现有配置的兼容性
 
-## Системные требования
+✅ **通过 Moonraker 的 REST API**
+- 通过 HTTP API 获取 ACE 状态
+- 通过 REST 端点执行命令
+- WebSocket 订阅状态更新
 
-- **Klipper** - свежая установка (рекомендуется)
-- **Python 3** - для работы модуля
-- **pyserial** - библиотека для работы с последовательным портом
-- **USB-соединение** - для подключения к ACE Pro
+## 系统要求
 
-### Поддерживаемые принтеры
+- **Klipper** - 新安装（推荐）
+- **Python 3** - 用于模块运行
+- **pyserial** - 用于串口通信的库
+- **USB 连接** - 连接到 ACE Pro
+
+### 支持的打印机
 
 - ✅ Creality K1 / K1 Max
-- ⚠️ Другие принтеры с Klipper (требует тестирования)
+- ⚠️ 其他 Klipper 打印机（需要测试）
 
-## Быстрый старт
+## 快速开始
 
-### 1. Установка
+### 1. 安装
 
 ```bash
-# Клонируем репозиторий
+# 克隆仓库
 git clone https://github.com/agrloki/ValgACE.git
 cd ValgACE
 
-# Запускаем установку
+# 运行安装脚本
 ./install.sh
 ```
 
-### 2. Настройка
+### 2. 配置
 
-Добавьте в `printer.cfg`:
+在 `printer.cfg` 中添加：
 
 ```ini
 [include ace.cfg]
 ```
 
-### 3. Проверка подключения
+### 3. 检查连接
 
 ```gcode
 ACE_STATUS
 ACE_DEBUG METHOD=get_info
 ```
 
-## Подключение устройства
+## 设备连接
 
-### Pinout разъема
+### 连接器针脚图
 
-Устройство ACE Pro подключается через разъем Molex к стандартному USB:
+ACE Pro 设备通过 Molex 连接器连接到标准 USB：
 
 ![Molex](/.github/img/molex.png)
 
-**Распиновка разъема:**
+**连接器针脚分布：**
 
-- **1** - None (VCC, не требуется для работы, ACE обеспечивает собственное питание)
-- **2** - Ground (Земля)
-- **3** - D- (USB Data-)
-- **4** - D+ (USB Data+)
+- **1** - 无（VCC，工作不需要，ACE 提供自己的电源）
+- **2** - 接地（地线）
+- **3** - D- （USB 数据-）
+- **4** - D+（USB 数据+）
 
-**Подключение:** Подключите разъем Molex к обычному USB кабелю - никаких дополнительных манипуляций не требуется.
+**连接方式：** 将 Molex 连接器连接到普通 USB 电缆 - 无需任何额外操作。
 
-Подробнее см. [Руководство по установке](docs/INSTALLATION.md#подключение-устройства).
+详见 [安装指南](docs/INSTALLATION.md#设备连接)。
 
-## Документация
+## 文档
 
-Полная документация доступна в папке `docs/`:
+完整文档可在 `docs/` 文件夹中获得：
 
-**Русская документация:**
-- **[Установка](docs/INSTALLATION.md)** - подробное руководство по установке
-- **[Руководство пользователя](docs/USER_GUIDE.md)** - как использовать ValgACE
-- **[Справочник команд](docs/COMMANDS.md)** - все доступные команды G-code
-- **[Конфигурация](docs/CONFIGURATION.md)** - настройка параметров
-- **[Решение проблем](docs/TROUBLESHOOTING.md)** - типичные проблемы и решения
-- **[Протокол](docs/Protocol.md)** - техническая документация протокола (English)
-- **[Протокол (русский)](docs/Protocol_ru.md)** - техническая документация протокола
-- **[Moonraker API](docs/MOONRAKER_API.md)** - интеграция с Moonraker API и REST эндпоинты
+**英文文档：**
+- **[安装](docs/INSTALLATION.md)** - 详细的安装指南
+- **[用户指南](docs/USER_GUIDE.md)** - 如何使用 ValgACE
+- **[命令参考](docs/COMMANDS.md)** - 所有可用的 G-code 命令
+- **[配置](docs/CONFIGURATION.md)** - 参数配置
+- **[故障排除](docs/TROUBLESHOOTING.md)** - 常见问题和解决方案
+- **[协议](docs/PROTOCOL.md)** - 技术协议文档（英文）
+- **[协议（俄文）](docs/PROTOCOL_RU.md)** - 技术协议文档
+- **[协议（中文）](docs/PROTOCOL_ZH.md)** - 技术协议文档
+- **[Moonraker API](docs/MOONRAKER_API.md)** - Moonraker API 集成和 REST 端点
 
-**English Documentation:**
-- **[Installation](docs/en/INSTALLATION.md)** - detailed installation guide
-- **[User Guide](docs/en/USER_GUIDE.md)** - how to use ValgACE
-- **[Commands Reference](docs/en/COMMANDS.md)** - all available G-code commands
-- **[Configuration](docs/en/CONFIGURATION.md)** - parameter configuration
-- **[Troubleshooting](docs/en/TROUBLESHOOTING.md)** - common issues and solutions
-- **[Protocol](docs/Protocol.md)** - technical protocol documentation (English)
-- **[Moonraker API](docs/MOONRAKER_API.md)** - Moonraker API integration and REST endpoints (Russian)
+**英文文档：**
+- **[Installation](docs/en/INSTALLATION.md)** - 详细的安装指南
+- **[User Guide](docs/en/USER_GUIDE.md)** - 如何使用 ValgACE
+- **[Commands Reference](docs/en/COMMANDS.md)** - 所有可用的 G-code 命令
+- **[Configuration](docs/en/CONFIGURATION.md)** - 参数配置
+- **[Troubleshooting](docs/en/TROUBLESHOOTING.md)** - 常见问题和解决方案
+- **[Protocol](docs/PROTOCOL.md)** - 技术协议文档（英文）
+- **[Moonraker API](docs/MOONRAKER_API.md)** - Moonraker API 集成和 REST 端点（中文）
 
-## Основные команды
+## 主要命令
 
 ```gcode
-# Получить статус устройства
+# 获取设备状态
 ACE_STATUS
 
-# Смена инструмента
-ACE_CHANGE_TOOL TOOL=0    # Загрузить слот 0
-ACE_CHANGE_TOOL TOOL=-1   # Выгрузить филамент
+# 换工具
+ACE_CHANGE_TOOL TOOL=0    # 加载槽位 0
+ACE_CHANGE_TOOL TOOL=-1   # 卸载线轴
 
-# Парковка филамента
+# 停泊线轴
 ACE_PARK_TO_TOOLHEAD INDEX=0
 
-# Управление подачей
+# 进给管理
 ACE_FEED INDEX=0 LENGTH=50 SPEED=25
 ACE_RETRACT INDEX=0 LENGTH=50 SPEED=25
 
-# Сушка филамента
+# 线轴干燥
 ACE_START_DRYING TEMP=50 DURATION=120
 ACE_STOP_DRYING
 
-# Режим бесконечной катушки
-ACE_SET_INFINITY_SPOOL_ORDER ORDER="0,1,2,3"  # Установить порядок слотов
-ACE_INFINITY_SPOOL  # Автоматическая смена при окончании филамента
+# 无限线轴模式
+ACE_SET_INFINITY_SPOOL_ORDER ORDER="0,1,2,3"  # 设置槽位顺序
+ACE_INFINITY_SPOOL  # 线轴耗尽时自动换槽位
 
-# Маппинг слотов
-ACE_GET_SLOTMAPPING                 # Получить текущий маппинг
-ACE_SET_SLOTMAPPING INDEX=0 SLOT=1  # Назначить T0 -> слот 1
-ACE_RESET_SLOTMAPPING               # Сбросить на значения по умолчанию
-SET_ALL_SLOTMAPPING S0=0 S1=1 S2=2 S3=3  # Массовая настройка
+# 槽位映射
+ACE_GET_SLOTMAPPING                 # 获取当前映射
+ACE_SET_SLOTMAPPING INDEX=0 SLOT=1  # 将 T0 分配到槽位 1
+ACE_RESET_SLOTMAPPING               # 重置为默认值
+SET_ALL_SLOTMAPPING S0=0 S1=1 S2=2 S3=3  # 批量配置
 
-# Управление соединением
-ACE_RECONNECT                       # Переподключиться при ошибках
+# 连接管理
+ACE_RECONNECT                       # 错误时重新连接
 
-# Справка
-ACE_GET_HELP                        # Вывести список всех команд
+# 帮助
+ACE_GET_HELP                        # 显示所有命令列表
 ```
 
-Полный список команд см. в [Справочнике команд](docs/COMMANDS.md).
+完整命令列表见 [命令参考](docs/COMMANDS.md)。
 
 ## REST API
 
-После установки доступны REST API эндпоинты через Moonraker:
+安装后，可通过 Moonraker 使用 REST API 端点：
 
 ```bash
-# Получить статус ACE
+# 获取 ACE 状态
 curl http://localhost:7125/server/ace/status
 
-# Получить информацию о слотах
+# 获取槽位信息
 curl http://localhost:7125/server/ace/slots
 
-# Выполнить команду ACE
+# 执行 ACE 命令
 curl -X POST http://localhost:7125/server/ace/command \
   -H "Content-Type: application/json" \
   -d '{"command":"ACE_PARK_TO_TOOLHEAD","params":{"INDEX":0}}'
 ```
 
-Подробная документация по REST API: [Moonraker API](docs/MOONRAKER_API.md)
+详细的 REST API 文档：[Moonraker API](docs/MOONRAKER_API.md)
 
-## Веб-интерфейс
+## 网页界面
 ![Web](/.github/img/valgace-web.png)
 
-Готовый веб-интерфейс для управления ACE доступен в `web-interface/`:
+在 `web-interface/` 中提供了用于管理 ACE 的现成网页界面：
 
-- **[ValgACE Dashboard](web-interface/README.md)** - полнофункциональный веб-интерфейс с Vue.js
-- Отображение статуса устройства в реальном времени
-- Управление слотами филамента (загрузка, парковка, feed assist, подача, откат)
-- Управление сушкой
-- WebSocket подключение для обновлений в реальном времени
+- **[ValgACE 仪表板](web-interface/README.md)** - 使用 Vue.js 的功能完整的网页界面
+- 实时设备状态显示
+- 线轴管理（加载、停泊、进给助手、进料、回退）
+- 干燥管理
+- WebSocket 连接用于实时更新
 
-### Быстрая установка Dashboard
+### 快速安装仪表板
 
 ```bash
-# Скопируйте файлы
+# 复制整个 web-interface 目录
 mkdir -p ~/ace-dashboard
-cp ~/ValgACE/web-interface/ace-dashboard.* ~/ace-dashboard/
+cp -r ~/ValgACE/web-interface/* ~/ace-dashboard/
 
-# Запустите HTTP сервер
+# 运行 HTTP 服务器
 cd ~/ace-dashboard
 python3 -m http.server 8080
 ```
 
-Откройте в браузере: `http://<IP-принтера>:8080/ace-dashboard.html`
+在浏览器中打开：`http://<打印机IP>:8080/index.html`
 
-**Для постоянного использования рекомендуется установка через nginx** — см. [инструкции по установке](docs/INSTALLATION.md#2-установка-веб-интерфейса-valgace-dashboard) и [пример конфигурации nginx](web-interface/nginx.conf.example).
+**对于持久使用，建议通过 nginx 安装** — 参见 [安装说明](docs/INSTALLATION.md#2-安装-valgace-仪表板) 和 [nginx 配置示例](web-interface/server/ace_dashboard.nginx.conf)。
 
-Файлы:
-- `ace-dashboard.html` - основной интерфейс
-- `ace-dashboard.css` - стили
-- `ace-dashboard.js` - логика работы с API
-- `ace-dashboard-config.js` - конфигурация адреса Moonraker
+主要文件：
+- `index.html` - 主页面入口
+- `js/ace-dashboard.js` - 主应用逻辑
+- `css/ace-dashboard.css` - 样式表
+- `config/ace-dashboard-config.js` - API 配置
+- `assets/favicon.svg` - 网站图标
+- `ace-dashboard-config.js` - Moonraker 地址配置
 
-## Поддержка
+## 支持
 
-### Обсуждения
+### 讨论
 
-- **Основное обсуждение:** [Telegram - perdoling3d](https://t.me/perdoling3d/45834)
-- **Общее обсуждение:** [Telegram - ERCFcrealityACEpro](https://t.me/ERCFcrealityACEpro/21334)
+- **主要讨论：** [Telegram - perdoling3d](https://t.me/perdoling3d/45834)
+- **一般讨论：** [Telegram - ERCFcrealityACEpro](https://t.me/ERCFcrealityACEpro/21334)
 
-### Видео
+### 视频
 
-- [Демонстрация работы](https://youtu.be/hozubbjeEw8)
-
+- [工作演示](https://youtu.be/hozubbjeEw8)
+哦离开，看，看，看，看，看，看，看，看，看，看，看，看，看，看，看，看，
 ### GitHub
 
-- **Репозиторий:** https://github.com/agrloki/ValgACE
-- **Issues:** Используйте GitHub Issues для сообщений об ошибках
+- **仓库：** https://github.com/agrloki/ValgACE
+- **问题：** 使用 GitHub Issues 报告错误
 
-## Благодарности
+## 致谢
 
-Отдельная благодарность **@Nefelim4ag** (Timofey Titovets) за волшебный пендель в правильном направлении. 🙂
+项目基于：
+- [DuckACE](https://github.com/utkabobr/DuckACE) by utkabobr
+- [BunnyACE](https://github.com/BlackFrogKok/BunnyACE) by BlackFrogKok
+- [ValgACE](https://github.com/agrloki/ValgACE) by agrloki
 
-Проект основан на:
-- [DuckACE](https://github.com/utkabobr/DuckACE) от utkabobr
-- [BunnyACE](https://github.com/BlackFrogKok/BunnyACE) от BlackFrogKok
+## 许可证
 
-## Лицензия
-
-Проект распространяется под лицензией [GNU GPL v3](LICENSE.md).
+项目采用 [GNU GPL v3](LICENSE.md) 许可证发布。
 

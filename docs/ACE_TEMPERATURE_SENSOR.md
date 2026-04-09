@@ -1,121 +1,121 @@
-# ACE Temperature Sensor для Klipper
+# ACE 温度传感器 Klipper 模块
 
-## Описание
+## 描述
 
-Модуль **temperature_ace** предоставляет интеграцию температуры ACE устройства с системой температурных сенсоров Klipper. Это позволяет мониторить температуру ACE через стандартные интерфейсы Klipper (Mainsail, Fluidd, KlipperScreen) и использовать её в макросах.
+**temperature_ace** 模块提供了 ACE 设备温度与 Klipper 温度传感器系统的集成。这使得您可以通过标准的 Klipper 界面（Mainsail、Fluidd、KlipperScreen）监控 ACE 温度，并在宏中使用它。
 
-## Возможности
+## 功能特性
 
-- ✅ Отображение температуры ACE в веб-интерфейсе
-- ✅ Мониторинг минимальной и максимальной температуры
-- ✅ Использование в G-code макросах
-- ✅ Защита от перегрева (автоматический shutdown)
-- ✅ Логирование температурной статистики
-- ✅ Moonraker API интеграция
+- ✅ 在 Web 界面中显示 ACE 温度
+- ✅ 监控最低和最高温度
+- ✅ 在 G-code 宏中使用
+- ✅ 过热保护（自动关机）
+- ✅ 温度统计日志记录
+- ✅ Moonraker API 集成
 
-## Установка
+## 安装
 
-### 1. Файл уже создан
+### 1. 文件已创建
 
-Модуль находится в:
+模块位于：
 ```
 klippy/extras/temperature_ace.py
 ```
 
-### 2. Загрузите модуль
+### 2. 加载模块
 
-**Важно!** Сначала нужно загрузить модуль, затем использовать sensor_type.
+**重要！** 必须先加载模块，然后才能使用 sensor_type。
 
-В `printer.cfg` добавьте **В ТАКОМ ПОРЯДКЕ**:
+在 `printer.cfg` 中按**以下顺序**添加：
 
 ```ini
-# Шаг 1: Загрузить модуль temperature_ace
+# 步骤 1：加载 temperature_ace 模块
 [temperature_ace]
 
-# Шаг 2: Использовать sensor_type
+# 步骤 2：使用 sensor_type
 [temperature_sensor ace_chamber]
 sensor_type: temperature_ace
 min_temp: 0
 max_temp: 70
 ```
 
-**Или через include:**
+**或者通过 include：**
 
 ```ini
-# Шаг 1: Загрузить модуль
+# 步骤 1：加载模块
 [include temperature_ace.cfg]
 
-# Шаг 2: Использовать sensor_type
+# 步骤 2：使用 sensor_type
 [temperature_sensor ace_chamber]
 sensor_type: temperature_ace
 min_temp: 0
 max_temp: 70
 ```
 
-### 3. Перезапустите Klipper
+### 3. 重启 Klipper
 
 ```gcode
 RESTART
 ```
 
-## Конфигурация
+## 配置
 
-### Базовая конфигурация
+### 基本配置
 
 ```ini
 [temperature_sensor ace_chamber]
-sensor_type: temperature_ace  # Тип сенсора (обязательно)
-min_temp: 0                   # Минимальная температура (°C)
-max_temp: 70                  # Максимальная температура (°C)
+sensor_type: temperature_ace  # 传感器类型（必需）
+min_temp: 0                   # 最低温度（°C）
+max_temp: 70                  # 最高温度（°C）
 ```
 
-### Параметры
+### 参数说明
 
-| Параметр | Обязательный | Описание | Значение по умолчанию |
+| 参数 | 必需 | 描述 | 默认值 |
 |----------|--------------|----------|----------------------|
-| `sensor_type` | ✅ Да | Тип сенсора | `temperature_ace` |
-| `min_temp` | ✅ Да | Минимальная допустимая температура (°C) | - |
-| `max_temp` | ✅ Да | Максимальная допустимая температура (°C) | - |
+| `sensor_type` | ✅ 是 | 传感器类型 | `temperature_ace` |
+| `min_temp` | ✅ 是 | 最小允许温度（°C） | - |
+| `max_temp` | ✅ 是 | 最大允许温度（°C） | - |
 
-### Рекомендуемые значения
+### 推荐值
 
 ```ini
-# Для мониторинга камеры
+# 用于腔室监控
 min_temp: 0
 max_temp: 70
 
-# Для мониторинга сушилки
+# 用于烘干监控
 min_temp: 0
-max_temp: 60  # Макс. температура сушки ACE = 55°C
+max_temp: 60  # ACE 最大烘干温度 = 55°C
 ```
 
-**Важно:** Если температура выйдет за пределы `min_temp`/`max_temp`, Klipper выполнит **emergency shutdown**!
+**重要：** 如果温度超出 `min_temp`/`max_temp` 范围，Klipper 将执行**紧急关机**！
 
-## Использование
+## 使用方法
 
-### Просмотр в веб-интерфейсе
+### 在 Web 界面中查看
 
-После настройки температура ACE будет отображаться:
+配置完成后，ACE 温度将显示在：
 
-**Mainsail/Fluidd:**
-- На главной панели в разделе "Temperature"
-- График температуры в реальном времени
-- История температур
+**Mainsail/Fluidd：**
+- 主页面板的 "Temperature" 部分
+- 实时温度图表
+- 温度历史记录
 
-**KlipperScreen:**
-- На главном экране
-- В меню Temperature
+**KlipperScreen：**
+- 主屏幕
+- Temperature 菜单
 
-### Использование в G-code макросах
+### 在 G-code 宏中使用
 
 ```gcode
 [gcode_macro CHECK_CHAMBER_TEMP]
 gcode:
     {% set ace_temp = printer["temperature_sensor ace_chamber"].temperature %}
-    M118 ACE temperature: {ace_temp}°C
+    M118 ACE 温度：{ace_temp}°C
 ```
 
-### Доступ к статистике
+### 访问统计数据
 
 ```gcode
 [gcode_macro ACE_TEMP_STATS]
@@ -125,14 +125,14 @@ gcode:
     {% set min = sensor.measured_min_temp %}
     {% set max = sensor.measured_max_temp %}
     
-    M118 Current: {current}°C
-    M118 Min: {min}°C
-    M118 Max: {max}°C
+    M118 当前：{current}°C
+    M118 最低：{min}°C
+    M118 最高：{max}°C
 ```
 
-## Примеры использования
+## 使用示例
 
-### Пример 1: Мониторинг температуры камеры
+### 示例 1：腔室温度监控
 
 ```ini
 [temperature_sensor ace_chamber]
@@ -146,19 +146,19 @@ max_temp: 70
 gcode:
     {% set chamber_temp = printer["temperature_sensor ace_chamber"].temperature %}
     
-    M118 Starting print, chamber temperature: {chamber_temp}°C
+    M118 开始打印，腔室温度：{chamber_temp}°C
     
-    # Ваша логика start_print
+    # 您的 start_print 逻辑
     # ...
 ```
 
-### Пример 2: Предупреждение о перегреве
+### 示例 2：过热警告
 
 ```ini
 [temperature_sensor ace_monitor]
 sensor_type: temperature_ace
 min_temp: 0
-max_temp: 65  # Shutdown при превышении
+max_temp: 65  # 超温时关机
 ```
 
 ```gcode
@@ -167,16 +167,16 @@ gcode:
     {% set temp = printer["temperature_sensor ace_monitor"].temperature %}
     
     {% if temp > 55 %}
-        M118 Warning: ACE temperature high ({temp}°C)
-        # Опционально: остановить сушку
+        M118 警告：ACE 温度过高（{temp}°C）
+        # 可选：停止烘干
         ACE_STOP_DRYING
     {% elif temp > 60 %}
-        M118 Critical: ACE temperature critical ({temp}°C)!
+        M118 严重：ACE 温度临界（{temp}°C）！
         PAUSE
     {% endif %}
 ```
 
-### Пример 3: Периодический мониторинг
+### 示例 3：定期监控
 
 ```gcode
 [delayed_gcode ace_temp_monitor]
@@ -187,13 +187,13 @@ gcode:
     {% set min = sensor.measured_min_temp %}
     {% set max = sensor.measured_max_temp %}
     
-    M118 ACE: {temp}°C (Min: {min}°C, Max: {max}°C)
+    M118 ACE：{temp}°C（最低：{min}°C，最高：{max}°C）
     
-    # Продолжить мониторинг каждые 5 минут
+    # 每 5 分钟继续监控
     UPDATE_DELAYED_GCODE ID=ace_temp_monitor DURATION=300
 ```
 
-### Пример 4: Условный старт печати
+### 示例 4：条件启动打印
 
 ```gcode
 [gcode_macro SMART_START_PRINT]
@@ -201,18 +201,18 @@ gcode:
     {% set target_chamber = params.CHAMBER|default(30)|float %}
     {% set chamber_temp = printer["temperature_sensor ace_chamber"].temperature %}
     
-    # Проверка температуры камеры
+    # 检查腔室温度
     {% if chamber_temp < target_chamber %}
-        M118 Chamber too cold ({chamber_temp}°C), heating required
-        # Включить обогрев камеры или подождать
+        M118 腔室温度过低（{chamber_temp}°C），需要加热
+        # 开启腔室加热或等待
         TEMPERATURE_WAIT SENSOR="temperature_sensor ace_chamber" MINIMUM={target_chamber}
     {% endif %}
     
-    M118 Chamber ready ({chamber_temp}°C)
-    # Продолжить печать
+    M118 腔室就绪（{chamber_temp}°C）
+    # 继续打印
 ```
 
-### Пример 5: Интеграция с сушкой
+### 示例 5：与烘干集成
 
 ```gcode
 [gcode_macro START_DRYING_MONITORED]
@@ -220,10 +220,10 @@ gcode:
     {% set TEMP = params.TEMP|default(50)|int %}
     {% set DURATION = params.DURATION|default(120)|int %}
     
-    M118 Starting drying at {TEMP}°C for {DURATION} minutes
+    M118 开始以 {TEMP}°C 烘干 {DURATION} 分钟
     ACE_START_DRYING TEMP={TEMP} DURATION={DURATION}
     
-    # Мониторинг температуры во время сушки
+    # 烘干期间监控温度
     UPDATE_DELAYED_GCODE ID=drying_monitor DURATION=60
 
 [delayed_gcode drying_monitor]
@@ -232,82 +232,82 @@ gcode:
     {% set temp = printer["temperature_sensor ace_chamber"].temperature %}
     
     {% if dryer.status == 'run' %}
-        M118 Drying: {temp}°C / {dryer.target_temp}°C (remaining: {dryer.remain_time/60}min)
+        M118 烘干中：{temp}°C / {dryer.target_temp}°C（剩余：{dryer.remain_time/60}分钟）
         UPDATE_DELAYED_GCODE ID=drying_monitor DURATION=60
     {% else %}
-        M118 Drying complete
+        M118 烘干完成
     {% endif %}
 ```
 
-## Технические детали
+## 技术细节
 
-### Как работает модуль
+### 模块工作原理
 
-1. **Регистрация сенсора:**
-   - Модуль регистрируется в системе `heaters` как sensor factory
-   - Создается объект `temperature_ace <name>`
+1. **传感器注册：**
+   - 模块在 `heaters` 系统中注册为传感器工厂
+   - 创建对象 `temperature_ace <name>`
 
-2. **Периодическое чтение:**
-   - Каждую секунду (`ACE_REPORT_TIME = 1.0`)
-   - Читает `ace._info['temp']` из модуля ACE
-   - Вызывает callback с новым значением температуры
+2. **周期性读取：**
+   - 每秒一次（`ACE_REPORT_TIME = 1.0`）
+   - 从 ACE 模块读取 `ace._info['temp']`
+   - 使用新的温度值调用回调函数
 
-3. **Отслеживание статистики:**
-   - Минимальная температура с момента запуска
-   - Максимальная температура с момента запуска
-   - Текущая температура
+3. **统计跟踪：**
+   - 自启动以来的最低温度
+   - 自启动以来的最高温度
+   - 当前温度
 
-4. **Защита от выхода за пределы:**
-   - Проверка `min_temp` и `max_temp`
-   - Emergency shutdown при превышении
+4. **越界保护：**
+   - 检查 `min_temp` 和 `max_temp`
+   - 超限时执行紧急关机
 
-### Источник температуры
+### 温度来源
 
-Температура читается из:
+温度从以下位置读取：
 ```python
 ace._info['temp']
 ```
 
-Которая обновляется ACE модулем через:
-- Периодические запросы `get_status` (каждую 1 секунду в обычном режиме)
-- Частые запросы (каждые 0.2 секунды) во время парковки
+该值由 ACE 模块通过以下方式更新：
+- 周期性 `get_status` 请求（正常模式下每秒 1 次）
+- 停放期间的频繁请求（每 0.2 秒）
 
-### Интервал обновления
+### 更新间隔
 
-- **Чтение из ACE:** каждую 1 секунду (через `_writer_loop`)
-- **Обновление сенсора:** каждую 1 секунду (`ACE_REPORT_TIME`)
-- **Отображение в UI:** зависит от настроек UI (обычно 1-2 секунды)
+- **从 ACE 读取：** 每 1 秒（通过 `_writer_loop`）
+- **传感器更新：** 每 1 秒（`ACE_REPORT_TIME`）
+- **UI 显示：** 取决于 UI 设置（通常 1-2 秒）
 
-### Точность
+### 精度
 
-Температура от ACE устройства:
-- **Разрешение:** 1°C (целочисленное значение от устройства)
-- **Точность:** зависит от датчика ACE (~±1-2°C)
-- **Диапазон:** 0-70°C
+来自 ACE 设备的温度：
+- **分辨率：** 1°C（设备提供的整数值）
+- **精度：** 取决于 ACE 传感器（约 ±1-2°C）
+- **范围：** 0-70°C
 
 ## Moonraker API
 
-Температура доступна через Moonraker API:
+温度可通过 Moonraker API 获取：
 
 ```python
-# Текущая температура
+# 当前温度
 printer.temperature_sensor.ace_chamber.temperature
 
-# Минимальная температура
+# 最低温度
 printer.temperature_sensor.ace_chamber.measured_min_temp
 
-# Максимальная температура
+# 最高温度
 printer.temperature_sensor.ace_chamber.measured_max_temp
 ```
 
-### Пример запроса через API
+### API 请求示例
 
 ```bash
-# HTTP GET запрос
+# HTTP GET 请求
 curl http://localhost:7125/printer/objects/query?temperature_sensor
 ```
 
-**Ответ:**
+**响应：**
 ```json
 {
   "result": {
@@ -324,63 +324,63 @@ curl http://localhost:7125/printer/objects/query?temperature_sensor
 }
 ```
 
-## Устранение неполадок
+## 故障排除
 
-### Проблема: Температура всегда 0
+### 问题：温度始终为 0
 
-**Причины:**
-1. ACE модуль не загружен
-2. ACE устройство не подключено
-3. Не получен статус от устройства
+**原因：**
+1. ACE 模块未加载
+2. ACE 设备未连接
+3. 未从设备获取状态
 
-**Решение:**
+**解决方案：**
 ```gcode
-# Проверьте ACE модуль
+# 检查 ACE 模块
 ACE_STATUS
 
-# Проверьте подключение
+# 检查连接
 ACE_DEBUG METHOD=get_status
 
-# Посмотрите логи
+# 查看日志
 # journalctl -u klipper -f | grep -i "temperature_ace"
 ```
 
-### Проблема: Температура не обновляется
+### 问题：温度不更新
 
-**Причины:**
-1. ACE модуль не получает обновления статуса
-2. Проблемы с serial соединением
+**原因：**
+1. ACE 模块未接收状态更新
+2. 串口连接问题
 
-**Решение:**
+**解决方案：**
 ```gcode
-# Проверьте что ACE получает обновления
+# 检查 ACE 是否接收更新
 ACE_STATUS
 
-# В логах должно быть:
+# 日志中应显示：
 # "ACE temperature sensor: ACE module found"
 ```
 
-### Проблема: Klipper shutdown из-за температуры
+### 问题：因温度导致 Klipper 关机
 
-**Симптомы:**
+**症状：**
 ```
 ACE temperature 71.0 above maximum temperature of 70.0
 ```
 
-**Решение:**
+**解决方案：**
 ```ini
-# Увеличьте max_temp в конфигурации
+# 增加配置中的 max_temp
 [temperature_sensor ace_chamber]
 sensor_type: temperature_ace
 min_temp: 0
-max_temp: 75  # Увеличено
+max_temp: 75  # 已增加
 ```
 
-### Проблема: Множественные сенсоры показывают одно значение
+### 问题：多个传感器显示相同值
 
-**Это нормально!** Все сенсоры с типом `temperature_ace` читают температуру из одного источника (ACE устройство имеет один датчик температуры).
+**这是正常的！** 所有类型为 `temperature_ace` 的传感器都从同一源读取温度（ACE 设备只有一个温度传感器）。
 
-Если нужны разные значения - используйте разные источники:
+如果需要不同的值，请使用不同的源：
 ```ini
 [temperature_sensor ace]
 sensor_type: temperature_ace
@@ -392,69 +392,69 @@ sensor_type: temperature_host
 sensor_type: temperature_mcu
 ```
 
-## Графики температуры
+## 温度图表
 
-### В Mainsail/Fluidd
+### 在 Mainsail/Fluidd 中
 
-Температура ACE автоматически появится в:
-1. Графике температур (Temperature Chart)
-2. Списке сенсоров на главной странице
-3. Истории температур
+ACE 温度将自动出现在：
+1. 温度图表（Temperature Chart）
+2. 主页的传感器列表
+3. 温度历史记录
 
-### Настройка отображения
+### 显示设置
 
-В Mainsail/Fluidd можно:
-- Включить/выключить отображение на графике
-- Настроить цвет линии
-- Установить автоматическое масштабирование
+在 Mainsail/Fluidd 中可以：
+- 启用/禁用图表显示
+- 配置线条颜色
+- 设置自动缩放
 
-## Интеграция с другими модулями
+## 与其他模块集成
 
-### С temperature_fan
+### 与 temperature_fan 集成
 
-Управление вентилятором на основе температуры ACE:
+基于 ACE 温度控制风扇：
 
 ```ini
 [temperature_fan ace_cooling_fan]
 sensor_type: temperature_ace
-pin: PB15  # Пин вентилятора
+pin: PB15  # 风扇引脚
 min_temp: 0
 max_temp: 70
-target_temp: 40.0  # Целевая температура
+target_temp: 40.0  # 目标温度
 max_speed: 1.0
 min_speed: 0.3
 control: watermark
 ```
 
-Вентилятор будет автоматически включаться когда температура ACE превысит 40°C.
+当 ACE 温度超过 40°C 时，风扇将自动启动。
 
-### С heater_generic
+### 与 heater_generic 集成
 
-**Примечание:** ACE не является нагревателем с PWM управлением, поэтому `heater_generic` напрямую не применим. Но можно использовать для мониторинга:
+**注意：** ACE 不是 PWM 控制的加热器，因此 `heater_generic` 不直接适用。但可用于监控：
 
 ```ini
-# Только для мониторинга, НЕ для управления!
+# 仅用于监控，不用于控制！
 [temperature_sensor ace_monitor]
 sensor_type: temperature_ace
 min_temp: 0
 max_temp: 70
 ```
 
-### С gcode_macro
+### 与 gcode_macro 集成
 
 ```gcode
 [gcode_macro WAIT_FOR_CHAMBER]
 gcode:
     {% set target = params.TARGET|default(30)|float %}
     
-    M118 Waiting for chamber temperature: {target}°C
+    M118 等待腔室温度达到：{target}°C
     TEMPERATURE_WAIT SENSOR="temperature_sensor ace_chamber" MINIMUM={target}
-    M118 Chamber ready!
+    M118 腔室就绪！
 ```
 
-## Мониторинг сушки
+## 烘干监控
 
-### Автоматический мониторинг процесса сушки
+### 自动监控烘干过程
 
 ```gcode
 [gcode_macro START_DRYING_WITH_MONITOR]
@@ -462,10 +462,10 @@ gcode:
     {% set TEMP = params.TEMP|default(50)|int %}
     {% set DURATION = params.DURATION|default(120)|int %}
     
-    # Запуск сушки
+    # 启动烘干
     ACE_START_DRYING TEMP={TEMP} DURATION={DURATION}
     
-    # Запуск мониторинга
+    # 启动监控
     UPDATE_DELAYED_GCODE ID=drying_monitor DURATION=60
 
 [delayed_gcode drying_monitor]
@@ -474,70 +474,70 @@ gcode:
     {% set dryer = printer.ace._info.dryer %}
     
     {% if dryer.status == 'run' %}
-        M118 Drying: {ace_temp}°C / {dryer.target_temp}°C
-        M118 Remaining: {dryer.remain_time // 60} minutes
+        M118 烘干中：{ace_temp}°C / {dryer.target_temp}°C
+        M118 剩余时间：{dryer.remain_time // 60} 分钟
         
-        # Проверка перегрева
+        # 检查过热
         {% if ace_temp > dryer.target_temp + 10 %}
-            M118 Warning: Temperature too high!
+            M118 警告：温度过高！
             ACE_STOP_DRYING
         {% else %}
             UPDATE_DELAYED_GCODE ID=drying_monitor DURATION=60
         {% endif %}
     {% else %}
-        M118 Drying complete, final temperature: {ace_temp}°C
+        M118 烘干完成，最终温度：{ace_temp}°C
     {% endif %}
 ```
 
-## Логирование
+## 日志记录
 
-### Статистика в логах Klipper
+### Klipper 日志中的统计信息
 
-Модуль автоматически пишет статистику в лог:
+模块会自动将统计信息写入日志：
 
 ```
 Stats 123.4: temperature_ace ace_chamber: temp=28.5
 ```
 
-Для просмотра:
+查看方法：
 ```bash
 journalctl -u klipper | grep "temperature_ace"
 ```
 
-### Уровни логирования
+### 日志级别
 
 ```python
-# Info уровень - при инициализации
+# Info 级别 - 初始化时
 "ACE temperature sensor: ACE module found"
 
-# Warning уровень - при проблемах
+# Warning 级别 - 出现问题时
 "ACE temperature sensor: ACE module not found, sensor will report 0"
 
-# Exception уровень - при ошибках чтения
+# Exception 级别 - 读取错误时
 "temperature_ace: Error reading temperature from ACE"
 ```
 
-## Расширенные примеры
+## 高级示例
 
-### Управление подогревом камеры
+### 腔室加热控制
 
 ```gcode
 [gcode_macro HEAT_CHAMBER]
 gcode:
     {% set target = params.TARGET|default(40)|float %}
     
-    M118 Heating chamber to {target}°C
+    M118 加热腔室至 {target}°C
     
-    # Включить подогрев (ваша логика)
+    # 开启加热（您的逻辑）
     SET_HEATER_TEMPERATURE HEATER=chamber_heater TARGET={target}
     
-    # Ждать достижения температуры
+    # 等待达到温度
     TEMPERATURE_WAIT SENSOR="temperature_sensor ace_chamber" MINIMUM={target}
     
-    M118 Chamber heated to {target}°C
+    M118 腔室已加热至 {target}°C
 ```
 
-### Адаптивное охлаждение
+### 自适应冷却
 
 ```gcode
 [gcode_macro ADAPTIVE_COOLING]
@@ -545,108 +545,108 @@ gcode:
     {% set temp = printer["temperature_sensor ace_chamber"].temperature %}
     
     {% if temp < 30 %}
-        # Низкая температура - минимальное охлаждение
-        M106 S64  # 25% скорость вентилятора
+        # 低温 - 最小冷却
+        M106 S64  # 25% 风扇速度
     {% elif temp < 45 %}
-        # Средняя температура
-        M106 S128  # 50% скорость
+        # 中等温度
+        M106 S128  # 50% 速度
     {% else %}
-        # Высокая температура - максимальное охлаждение
-        M106 S255  # 100% скорость
+        # 高温 - 最大冷却
+        M106 S255  # 100% 速度
     {% endif %}
 ```
 
-### Предварительный прогрев для ABS
+### ABS 预热
 
 ```gcode
 [gcode_macro PREHEAT_ABS]
 gcode:
-    M118 Preheating for ABS
+    M118 为 ABS 预热
     
-    # Нагрев стола
+    # 热床加热
     M140 S100
     
-    # Включить сушку ACE для прогрева камеры
+    # 开启 ACE 烘干以预热腔室
     ACE_START_DRYING TEMP=50 DURATION=30
     
-    # Ждать прогрева камеры
+    # 等待腔室预热
     TEMPERATURE_WAIT SENSOR="temperature_sensor ace_chamber" MINIMUM=35
     
-    M118 Chamber preheated, starting print
+    M118 腔室预热完成，开始打印
 ```
 
-## Сравнение с другими сенсорами
+## 与其他传感器比较
 
-| Сенсор | Источник | Интервал | Применение |
+| 传感器 | 来源 | 间隔 | 应用 |
 |--------|----------|----------|------------|
-| `temperature_ace` | ACE устройство | 1с | Температура внутри ACE |
-| `temperature_host` | Raspberry Pi | 1с | Температура хоста |
-| `temperature_mcu` | MCU | 0.3с | Температура микроконтроллера |
-| `thermistor` | ADC пин | 0.3с | Стол, хотенд, и т.д. |
+| `temperature_ace` | ACE 设备 | 1秒 | ACE 内部温度 |
+| `temperature_host` | Raspberry Pi | 1秒 | 主机温度 |
+| `temperature_mcu` | MCU | 0.3秒 | 微控制器温度 |
+| `thermistor` | ADC 引脚 | 0.3秒 | 热床、热端等 |
 
-## Ограничения
+## 限制
 
-1. **Одно устройство ACE**
-   - Модуль поддерживает только одно ACE устройство
-   - Все сенсоры `temperature_ace` читают из одного источника
+1. **单个 ACE 设备**
+   - 模块仅支持一个 ACE 设备
+   - 所有 `temperature_ace` 传感器从同一源读取
 
-2. **Только чтение**
-   - Сенсор только отображает температуру
-   - Нельзя управлять температурой ACE через этот сенсор
-   - Для управления сушкой используйте `ACE_START_DRYING`
+2. **只读**
+   - 传感器仅显示温度
+   - 无法通过此传感器控制 ACE 温度
+   - 使用 `ACE_START_DRYING` 控制烘干
 
-3. **Зависимость от ACE модуля**
-   - Требуется рабочий модуль `ace.py`
-   - Если ACE не подключен - температура будет 0
+3. **依赖 ACE 模块**
+   - 需要正常工作的 `ace.py` 模块
+   - 如果 ACE 未连接，温度将为 0
 
-4. **Разрешение**
-   - ACE предоставляет температуру с разрешением 1°C
-   - Дробные значения не поддерживаются устройством
+4. **分辨率**
+   - ACE 提供 1°C 分辨率的温度
+   - 设备不支持小数值
 
-## Отладка
+## 调试
 
-### Проверка работы модуля
+### 检查模块工作状态
 
 ```gcode
-# 1. Проверьте что модуль загружен
-# В логах должно быть:
+# 1. 检查模块是否已加载
+# 日志中应显示：
 # "ACE temperature sensor: ACE module found"
 
-# 2. Проверьте температуру
+# 2. 检查温度
 ACE_STATUS
-# Найдите "temp": <число>
+# 查找 "temp": <数字>
 
-# 3. Проверьте сенсор через Moonraker
+# 3. 通过 Moonraker 检查传感器
 # GET http://localhost:7125/printer/objects/query?temperature_sensor
 ```
 
-### Включение debug логирования
+### 启用调试日志
 
-В `printer.cfg`:
+在 `printer.cfg` 中：
 ```ini
 [temperature_sensor ace_debug]
 sensor_type: temperature_ace
 min_temp: 0
 max_temp: 70
 
-# В klippy/extras/temperature_ace.py временно измените:
+# 在 klippy/extras/temperature_ace.py 中临时修改：
 # logging.info(...) → logging.debug(...)
 ```
 
-Затем в `moonraker.conf`:
+然后在 `moonraker.conf` 中：
 ```ini
 [debug]
 log_level: debug
 ```
 
-### Проверка значений
+### 检查数值
 
 ```python
-# В Klipper console или через SSH
-# Подключитесь к Klipper:
+# 在 Klipper 控制台或通过 SSH
+# 连接到 Klipper：
 ~/klippy-env/bin/python ~/klipper/scripts/whconsole.py
 
-# В консоли выполните:
+# 在控制台中执行：
 ace = printer.lookup_object('ace')
 print(ace._info['temp'])
 
@@ -654,65 +654,64 @@ sensor = printer.lookup_object('temperature_ace ace_chamber')
 print(sensor.temp)
 ```
 
-## Совместимость
+## 兼容性
 
-| Компонент | Версия | Статус |
+| 组件 | 版本 | 状态 |
 |-----------|--------|--------|
-| Klipper | Актуальная | ✅ Совместимо |
-| Mainsail | Все версии | ✅ Работает |
-| Fluidd | Все версии | ✅ Работает |
-| KlipperScreen | Все версии | ✅ Работает |
-| Moonraker | Все версии | ✅ API поддерживается |
+| Klipper | 最新版本 | ✅ 兼容 |
+| Mainsail | 所有版本 | ✅ 正常工作 |
+| Fluidd | 所有版本 | ✅ 正常工作 |
+| KlipperScreen | 所有版本 | ✅ 正常工作 |
+| Moonraker | 所有版本 | ✅ API 支持 |
 
-## Дополнительные возможности
+## 额外功能
 
-### Множественные сенсоры
+### 多个传感器
 
-Можно создать несколько сенсоров для разных целей:
+可以为不同目的创建多个传感器：
 
 ```ini
-# Основной мониторинг
+# 主要监控
 [temperature_sensor ace]
 sensor_type: temperature_ace
 min_temp: 0
 max_temp: 70
 
-# Для камеры
+# 用于腔室
 [temperature_sensor chamber]
 sensor_type: temperature_ace
 min_temp: 0
 max_temp: 65
 
-# Для сушилки
+# 用于烘干
 [temperature_sensor dryer]
 sensor_type: temperature_ace
 min_temp: 0
 max_temp: 60
 ```
 
-Все они будут показывать одну и ту же температуру, но с разными пределами shutdown.
+它们都将显示相同的温度，但具有不同的关机阈值。
 
-### История температур
+### 温度历史
 
-Mainsail/Fluidd автоматически сохраняют историю температур. Можно просмотреть графики за:
-- Последний час
-- Последние 24 часа
-- Пользовательский период
-
----
-
-## Заключение
-
-Модуль `temperature_ace` обеспечивает полную интеграцию температуры ACE устройства с экосистемой Klipper, позволяя:
-- Мониторить температуру в реальном времени
-- Использовать в автоматизации и макросах
-- Защититься от перегрева
-- Отслеживать статистику
+Mainsail/Fluidd 自动保存温度历史。可以查看以下时间段的图表：
+- 过去 1 小时
+- 过去 24 小时
+- 自定义时间段
 
 ---
 
-**Версия:** 1.0  
-**Дата:** 2025-01-07  
-**Автор:** ValgACE Project  
-**Лицензия:** GNU GPLv3
+## 总结
 
+`temperature_ace` 模块实现了 ACE 设备温度与 Klipper 生态系统的完全集成，允许：
+- 实时监控温度
+- 在自动化和宏中使用
+- 防止过热
+- 跟踪统计数据
+
+---
+
+**版本：** 1.0  
+**日期：** 2025-01-07  
+**作者：** ValgACE Project  
+**许可证：** GNU GPLv3
