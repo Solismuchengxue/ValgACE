@@ -129,7 +129,7 @@ ACE_DEBUG METHOD=get_info
 
 ### 连接器针脚图
 
-ACE Pro 设备通过 Molex 连接器连接到标准 USB：
+ACE Pro 设备通过MX3.0 6P端子连接到标准 USB：
 
 ![Molex](/.github/img/molex.png)
 
