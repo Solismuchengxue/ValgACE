@@ -1,342 +1,412 @@
-#!/bin/sh
+#!/bin/bash
 
 # =============================================================================
-# ACE 仪表板 - 交互式安装程序
+# ValgACE 交互式安装脚本
+# 功能：
+#   1. 安装 Klipper extras (ace.py, temperature_ace.py)
+#   2. 安装配置文件 (ace.cfg) 并引用至 printer.cfg
+#   3. 安装 Moonraker 组件 (ace_status.py)
+#   4. 配置 Moonraker 扩展及更新管理器
+#   5. 安装 Web 仪表板至 Mainsail / Fluidd 或跳过
+#   6. 配置 API 端点（仅当安装 Web 界面时）
+#   7. 设置文件权限（仅当安装 Web 界面时）
+#   8. 重启服务
+# 使用 -u 参数卸载所有安装项
 # =============================================================================
-# 1. 安装 ValgACE 组件到 Klipper
-# 2. 创建 ACE 配置文件
-# 3. 创建 Moonraker 组件
-# 4. 创建 Klipper 配置文件
-# 5. 创建 Moonraker 配置文件
-# 6. 将 ACE 仪表板 Web 文件安装到 Mainsail/Fluidd 中
-# 7. 重启 Klipper 和 Moonraker 服务
-# 并安装 Moonraker 组件以获取 ACE 状态。
-#
-# 使用方法: ./install.sh
-# =============================================================================
 
-# ============================================================================
-# 全局参数
-# ============================================================================
-VERSION="1.2"                                               # 脚本版本
-IS_MIPS=$(uname -m | grep -q "mips" && echo 1 || echo 0)    # 是否MIPS架构
+set -e
 
-# 配置路径
-KLIPPER_HOME="${HOME}/klipper"
-KLIPPER_CONFIG_HOME="${HOME}/printer_data/config"
-MOONRAKER_CONFIG_DIR="${HOME}/printer_data/config"
-MOONRAKER_HOME="${HOME}/moonraker"
-SRCDIR="$PWD"
-KLIPPER_ENV="${HOME}/klippy-env/bin"
+# ----------------------------- 全局变量 ----------------------------------
+SCRIPT_VERSION="1.2"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_USER="${SUDO_USER:-$(id -un)}"
+INSTALL_HOME="$(getent passwd "$INSTALL_USER" 2>/dev/null | cut -d: -f6 || echo "$HOME")"
 
-# 输出颜色
+# 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# 脚本目录（此脚本所在位置）
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )" 
+# 默认路径（可交互修改）
+KLIPPER_HOME="${INSTALL_HOME}/klipper"
+KLIPPER_CONFIG_HOME="${INSTALL_HOME}/printer_data/config"
+MOONRAKER_HOME="${INSTALL_HOME}/moonraker"
+MOONRAKER_CONFIG="${KLIPPER_CONFIG_HOME}/moonraker.conf"
+PRINTER_CFG="${KLIPPER_CONFIG_HOME}/printer.cfg"
 
-# 解析安装用户/主目录以设置默认值
-INSTALL_USER="${SUDO_USER:-$(id -un)}"
-INSTALL_HOME="$(getent passwd "$INSTALL_USER" 2>/dev/null | cut -d: -f6 || true)"
-if [ -z "$INSTALL_HOME" ]; then
-    INSTALL_HOME="$HOME"
-fi
+# 源文件位置
+SRC_EXTRAS="${SCRIPT_DIR}/extras"
+SRC_MOONRAKER="${SCRIPT_DIR}/moonraker"
+SRC_WEB="${SCRIPT_DIR}/web-interface"
+SRC_ACE_CFG="${SCRIPT_DIR}/ace.cfg"
 
 # 服务名称
 KLIPPER_SERVICE="klipper"
 MOONRAKER_SERVICE="moonraker"
 
-usage() { 
-    echo "用法: $0 [-u] [-h] [-v]" 1>&2
-    echo "选项:" 1>&2
-    echo "  -u    卸载 ValgACE" 1>&2
-    echo "  -h    显示此帮助" 1>&2
-    echo "  -v    显示版本" 1>&2
-    exit 1
+# Web 安装标志
+INSTALL_WEB=0
+
+# ----------------------------- 辅助函数 ----------------------------------
+print_header() {
+    echo -e "\n${BLUE}========================================${NC}"
+    echo -e "${BLUE}$1${NC}"
+    echo -e "${BLUE}========================================${NC}\n"
 }
 
-show_version() {
-    echo "ValgACE 安装程序 v${VERSION}"
-    exit 0
+print_info()   { echo -e "${BLUE}ℹ ${1}${NC}"; }
+print_success(){ echo -e "${GREEN}✓ ${1}${NC}"; }
+print_warning(){ echo -e "${YELLOW}⚠ ${1}${NC}"; }
+print_error()  { echo -e "${RED}✗ ${1}${NC}"; }
+
+prompt_yes_no() {
+    local prompt="$1"
+    local response
+    while true; do
+        read -p "$(echo -e ${BLUE}${prompt}${NC} [y/N]: )" response
+        case "$response" in
+            [yY][eE][sS]|[yY]) return 0 ;;
+            [nN][oO]|[nN]|"")   return 1 ;;
+            *) echo "请回答 y 或 n" ;;
+        esac
+    done
 }
 
-# 解析参数
-UNINSTALL=0
-while getopts "uhv" arg; do
-   case $arg in
-       u) UNINSTALL=1;;
-       h) usage;;
-       v) show_version;;
-       *) usage;;
-   esac
-done
+prompt_input() {
+    local prompt="$1"
+    local default="$2"
+    local response
+    read -p "$(echo -e ${BLUE}${prompt}${NC} [${default}]: )" response
+    echo "${response:-$default}"
+}
 
-verify_ready() {
-  if [ "$IS_MIPS" -ne 1 ]; then
-    if [ "$EUID" -eq 0 ]; then
-        echo "[错误] 此脚本不能以 root 用户运行。退出。"
-        exit 1
+backup_file() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        local timestamp=$(date +"%Y%m%d_%H%M%S")
+        local backup="${file}.backup_${timestamp}"
+        cp "$file" "$backup"
+        print_success "已备份: $file → $backup"
+        return 0
     fi
-  else
-    echo "[警告] 在 MIPS 系统上运行 - 期望 root 权限"
-  fi
+    return 1
 }
 
-check_service() {
-    local service=$1
-    if ! sudo systemctl is-enabled --quiet "$service" 2>/dev/null; then
-        echo "[错误] 服务 $service 未找到或未启用"
+create_symlink() {
+    local src="$1"
+    local dest="$2"
+    local desc="$3"
+    
+    if [ ! -e "$src" ]; then
+        print_error "源文件不存在: $src"
         return 1
     fi
+    
+    mkdir -p "$(dirname "$dest")"
+    if [ -L "$dest" ] || [ -e "$dest" ]; then
+        if [ -L "$dest" ]; then
+            print_warning "符号链接已存在: $dest → $(readlink "$dest")"
+        else
+            print_warning "文件/目录已存在: $dest"
+        fi
+        if prompt_yes_no "是否替换？"; then
+            rm -f "$dest"
+        else
+            print_info "跳过 ${desc}"
+            return 1
+        fi
+    fi
+    ln -sf "$src" "$dest"
+    print_success "${desc} 符号链接已创建: $dest → $src"
     return 0
 }
 
-check_folders() {
-    local missing=0
+add_line_to_file_if_missing() {
+    local file="$1"
+    local line="$2"
+    if ! grep -qF "$line" "$file" 2>/dev/null; then
+        echo "$line" >> "$file"
+        print_success "已添加行至 $file"
+    else
+        print_info "行已存在于 $file"
+    fi
+}
+
+ensure_printer_cfg_include() {
+    local include_line="[include ace.cfg]"
+    if ! grep -qF "$include_line" "$PRINTER_CFG" 2>/dev/null; then
+        print_info "正在将 '[include ace.cfg]' 插入 printer.cfg 顶部..."
+        backup_file "$PRINTER_CFG"
+        sed -i "1i $include_line" "$PRINTER_CFG"
+        print_success "已添加引用至 printer.cfg"
+    else
+        print_success "printer.cfg 已包含 ace.cfg 引用"
+    fi
+}
+
+# ----------------------------- 安装步骤 ----------------------------------
+install_klipper_extras() {
+    print_header "1. 安装 Klipper 扩展"
+    create_symlink "$SRC_EXTRAS/ace.py" "$KLIPPER_HOME/klippy/extras/ace.py" "ace.py"
+    create_symlink "$SRC_EXTRAS/temperature_ace.py" "$KLIPPER_HOME/klippy/extras/temperature_ace.py" "temperature_ace.py"
+}
+
+install_config() {
+    print_header "2. 安装配置文件"
+    if [ ! -f "$SRC_ACE_CFG" ]; then
+        print_error "未找到 ace.cfg: $SRC_ACE_CFG"
+        return 1
+    fi
+    if [ -f "$KLIPPER_CONFIG_HOME/ace.cfg" ]; then
+        print_warning "ace.cfg 已存在，将备份后覆盖"
+        backup_file "$KLIPPER_CONFIG_HOME/ace.cfg"
+    fi
+    cp "$SRC_ACE_CFG" "$KLIPPER_CONFIG_HOME/"
+    print_success "ace.cfg 已复制到 $KLIPPER_CONFIG_HOME"
+    ensure_printer_cfg_include
+}
+
+install_moonraker_component() {
+    print_header "3. 安装 Moonraker 组件"
+    create_symlink "$SRC_MOONRAKER/ace_status.py" "$MOONRAKER_HOME/moonraker/components/ace_status.py" "ace_status.py"
     
-    if [ ! -d "$KLIPPER_HOME/klippy/extras/" ]; then
-        echo "[错误] 在 $KLIPPER_HOME 中未找到 Klipper 安装"
-        missing=1
-    fi
-
-    if [ ! -d "${KLIPPER_CONFIG_HOME}/" ]; then
-        echo "[错误] 配置目录未找到: $KLIPPER_CONFIG_HOME"
-        missing=1
-    fi
-
-    if [ ! -f "${MOONRAKER_CONFIG_DIR}/moonraker.conf" ]; then
-        echo "[错误] 在 $MOONRAKER_CONFIG_DIR 中未找到 moonraker.conf"
-        missing=1
-    fi
-
-    if [ ! -d "${KLIPPER_ENV}" ]; then
-        echo "[错误] Klipper 环境目录未找到: $KLIPPER_ENV"
-        missing=1
-    fi
-
-    # Moonraker 主目录（用于链接组件）
-    if [ ! -d "${MOONRAKER_HOME}" ]; then
-        echo "[错误] Moonraker 主目录未找到: ${MOONRAKER_HOME}"
-        missing=1
-    fi
-
-    if [ $missing -ne 0 ]; then
-        exit 1
-    fi
-
-    echo "[确定] 找到所有必需的目录和文件"
-}
-
-link_extension() {
-    if [ ! -f "${SRCDIR}/extras/ace.py" ]; then
-        echo "[错误] 源文件 ${SRCDIR}/extras/ace.py 未找到"
-        exit 1
-    fi
-
-    echo -n "将扩展链接到 Klipper... "
-    if ln -sf "${SRCDIR}/extras/ace.py" "${KLIPPER_HOME}/klippy/extras/ace.py"; then
-        echo "[确定]"
+    print_info "检查 moonraker.conf 中的 [ace_status]..."
+    if ! grep -qi '^[[:space:]]*\[ace_status\]' "$MOONRAKER_CONFIG" 2>/dev/null; then
+        backup_file "$MOONRAKER_CONFIG"
+        echo -e "\n[ace_status]" >> "$MOONRAKER_CONFIG"
+        print_success "已添加 [ace_status] 到 moonraker.conf"
     else
-        echo "[失败]"
-        exit 1
+        print_success "[ace_status] 已存在于 moonraker.conf"
     fi
 }
 
-link_temperature_sensor() {
-    if [ ! -f "${SRCDIR}/extras/temperature_ace.py" ]; then
-        echo "[错误] 源文件 ${SRCDIR}/extras/temperature_ace.py 未找到"
-        exit 1
-    fi
-
-    echo -n "将温度传感器链接到 Klipper... "
-    if ln -sf "${SRCDIR}/extras/temperature_ace.py" "${KLIPPER_HOME}/klippy/extras/temperature_ace.py"; then
-        echo "[确定]"
-    else
-        echo "[失败]"
-        exit 1
-    fi
-}
-
-link_moonraker_component() {
-    if [ ! -f "${SRCDIR}/moonraker/ace_status.py" ]; then
-        echo "[错误] 源文件 ${SRCDIR}/moonraker/ace_status.py 未找到"
-        exit 1
-    fi
-
-    # 确保目标目录存在
-    DEST_DIR="${MOONRAKER_HOME}/moonraker/components"
-    mkdir -p "${DEST_DIR}"
-
-    echo -n "链接 Moonraker 组件... "
-    if ln -sf "${SRCDIR}/moonraker/ace_status.py" "${DEST_DIR}/ace_status.py"; then
-        echo "[确定]"
-    else
-        echo "[失败]"
-        exit 1
-    fi
-
-    # 确保moonraker.conf配置文件中存在相应的配置节
-    if ! grep -q "^\[ace_status\]" "${MOONRAKER_CONFIG_DIR}/moonraker.conf"; then
-        echo -n "将 [ace_status] 添加到 moonraker.conf... "
-        printf "\n[ace_status]\n" >> "${MOONRAKER_CONFIG_DIR}/moonraker.conf" && echo "[确定]" || echo "[失败]"
-    else
-        echo "[跳过] ([ace_status] 已存在于 moonraker.conf 中)"
-    fi
-}
-
-copy_config() {
-    echo -n "复制配置文件... "
-    if [ ! -f "${KLIPPER_CONFIG_HOME}/ace.cfg" ]; then
-        if cp "${SRCDIR}/ace.cfg" "${KLIPPER_CONFIG_HOME}/"; then
-            echo "[确定]"
-        else
-            echo "[失败]"
-            exit 1
-        fi
-    else
-        echo "[跳过] (已存在)"
-    fi
-}
-
-install_requirements() {
-    echo -n "安装依赖... "
-    if [ ! -f "${SRCDIR}/requirements.txt" ]; then
-        echo "[跳过] (未找到 requirements.txt)"
-        return
-    fi
-
-    if "${KLIPPER_ENV}/pip3" install -r "${SRCDIR}/requirements.txt"; then
-        echo "[确定]"
-    else
-        echo "[失败]"
-        exit 1
-    fi
-}
-
-uninstall() {
-    echo -n "卸载 ValgACE... "
-    local removed=0
-    
-    if [ -f "${KLIPPER_HOME}/klippy/extras/ace.py" ]; then
-        if rm -f "${KLIPPER_HOME}/klippy/extras/ace.py"; then
-            echo "[确定] ace.py 已移除"
-            removed=1
-        else
-            echo "[失败]"
-            exit 1
-        fi
-    fi
-    
-    if [ -f "${KLIPPER_HOME}/klippy/extras/temperature_ace.py" ]; then
-        if rm -f "${KLIPPER_HOME}/klippy/extras/temperature_ace.py"; then
-            echo "[确定] temperature_ace.py 已移除"
-            removed=1
-        else
-            echo "[失败]"
-            exit 1
-        fi
-    fi
-    
-    if [ $removed -eq 0 ]; then
-        echo "[跳过] (未找到 ValgACE 文件)"
-    else
-        echo "注意: 您需要手动移除:"
-        echo "1. moonraker.conf 中的 [update_manager ValgACE] 部分"
-        echo "2. printer.cfg 中的所有 ValgACE 相关配置"
-    fi
-}
-
-restart_service() {
-    local service=$1
-    echo -n "重启 $service... "
-    if sudo systemctl restart "$service"; then
-        echo "[确定]"
-    else
-        echo "[失败]"
-        exit 1
-    fi
-}
-
-stop_service() {
-    local service=$1
-    echo -n "停止 $service... "
-    if sudo systemctl stop "$service"; then
-        echo "[确定]"
-    else
-        echo "[失败]"
-        exit 1
-    fi
-}
-
-start_service() {
-    local service=$1
-    echo -n "启动 $service... "
-    if sudo systemctl start "$service"; then
-        echo "[确定]"
-    else
-        echo "[失败]"
-        exit 1
-    fi
-}
-
-add_updater() {
-    echo -n "将更新管理器添加到 moonraker.conf... "
-    if grep -q "\[update_manager ValgACE\]" "${MOONRAKER_CONFIG_DIR}/moonraker.conf"; then
-        echo "[跳过] (已存在)"
-        return
-    fi
-
-    cat << EOF >> "${MOONRAKER_CONFIG_DIR}/moonraker.conf"
-
-[update_manager ValgACE]
+add_update_manager() {
+    print_header "4. 添加更新管理器"
+    local updater_section="[update_manager ValgACE]
 type: git_repo
-path: ${SRCDIR}
+path: ${SCRIPT_DIR}
 primary_branch: main
 origin: https://github.com/agrloki/ValgACE.git
-managed_services: klipper
-EOF
-
-    echo "[确定]"
+managed_services: klipper"
+    
+    if grep -qF "[update_manager ValgACE]" "$MOONRAKER_CONFIG" 2>/dev/null; then
+        print_success "更新管理器已存在"
+    else
+        backup_file "$MOONRAKER_CONFIG"
+        echo -e "\n$updater_section" >> "$MOONRAKER_CONFIG"
+        print_success "已添加更新管理器配置"
+    fi
 }
 
-# 主要流程
-verify_ready
-check_folders
-check_service "$KLIPPER_SERVICE" || exit 1
-check_service "$MOONRAKER_SERVICE" || exit 1
+install_web_dashboard() {
+    print_header "5. 安装 Web 仪表板"
+    
+    if [ ! -d "$SRC_WEB" ]; then
+        print_error "Web 源目录不存在: $SRC_WEB"
+        return 1
+    fi
 
-stop_service "$KLIPPER_SERVICE"
+    echo "请选择要安装 Web 仪表板的目标界面："
+    echo "  1) Mainsail"
+    echo "  2) Fluidd"
+    echo "  3) 都不安装"
+    local choice
+    while true; do
+        read -p "$(echo -e ${BLUE}请输入选择 [1-3]${NC}: )" choice
+        case "$choice" in
+            1) TARGET="mainsail"; break;;
+            2) TARGET="fluidd"; break;;
+            3) TARGET="none"; break;;
+            *) echo "无效输入，请重试";;
+        esac
+    done
 
+    if [ "$TARGET" = "none" ]; then
+        print_info "跳过 Web 仪表板安装。"
+        INSTALL_WEB=0
+        return 0
+    fi
+
+    INSTALL_WEB=1
+    local target_dir=""
+    if [ "$TARGET" = "mainsail" ]; then
+        target_dir=$(prompt_input "Mainsail 安装目录" "${INSTALL_HOME}/mainsail")
+    else
+        target_dir=$(prompt_input "Fluidd 安装目录" "${INSTALL_HOME}/fluidd")
+    fi
+
+    if [ ! -d "$target_dir" ]; then
+        print_warning "目录 $target_dir 不存在，将尝试创建"
+        mkdir -p "$target_dir"
+    fi
+
+    local web_files=("ace.html" "ace-dashboard.js" "ace-dashboard.css" "ace-dashboard-config.js" "favicon.svg")
+    for file in "${web_files[@]}"; do
+        create_symlink "$SRC_WEB/$file" "$target_dir/$file" "${TARGET^} $file"
+    done
+    print_success "Web 文件已链接到 $target_dir"
+}
+
+configure_api_endpoint() {
+    print_header "6. 配置 API 端点"
+    local config_file="$SRC_WEB/ace-dashboard-config.js"
+    if [ ! -f "$config_file" ]; then
+        print_error "配置文件不存在: $config_file"
+        return 1
+    fi
+    
+    print_info "当前 API 端点配置:"
+    grep "apiBase:" "$config_file" | head -1
+    
+    if prompt_yes_no "是否修改 API 端点？"; then
+        local new_api=$(prompt_input "请输入 Moonraker API 地址 (例如 http://192.168.1.100:7125)" "http://localhost:7125")
+        backup_file "$config_file"
+        sed -i "s|apiBase:.*|apiBase: '${new_api}',|" "$config_file"
+        print_success "API 端点已更新为 $new_api"
+    fi
+}
+
+set_permissions() {
+    print_header "7. 设置文件权限"
+    print_info "设置 Web 源文件权限为 644..."
+    chmod 644 "$SRC_WEB"/* 2>/dev/null || true
+    print_success "权限设置完成"
+}
+
+restart_services() {
+    print_header "8. 重启服务"
+    if prompt_yes_no "是否立即重启 Klipper 和 Moonraker 服务？"; then
+        sudo systemctl restart $KLIPPER_SERVICE && print_success "Klipper 已重启"
+        sudo systemctl restart $MOONRAKER_SERVICE && print_success "Moonraker 已重启"
+    else
+        print_warning "请稍后手动重启服务:"
+        echo "  sudo systemctl restart klipper moonraker"
+    fi
+}
+
+# ----------------------------- 卸载流程 ----------------------------------
+uninstall_all() {
+    print_header "卸载 ValgACE"
+    
+    print_info "正在移除 Klipper 扩展符号链接..."
+    rm -f "$KLIPPER_HOME/klippy/extras/ace.py" 2>/dev/null && print_success "已移除 ace.py"
+    rm -f "$KLIPPER_HOME/klippy/extras/temperature_ace.py" 2>/dev/null && print_success "已移除 temperature_ace.py"
+    
+    print_info "正在移除 Moonraker 组件符号链接..."
+    rm -f "$MOONRAKER_HOME/moonraker/components/ace_status.py" 2>/dev/null && print_success "已移除 ace_status.py"
+    
+    print_info "正在移除 Web 仪表板符号链接（常见位置）..."
+    local web_files=("ace.html" "ace-dashboard.js" "ace-dashboard.css" "ace-dashboard-config.js" "favicon.svg")
+    for dir in "${INSTALL_HOME}/mainsail" "${INSTALL_HOME}/fluidd"; do
+        if [ -d "$dir" ]; then
+            for file in "${web_files[@]}"; do
+                rm -f "$dir/$file" 2>/dev/null
+            done
+            print_info "已清理 $dir 中的 Web 文件"
+        fi
+    done
+    
+    print_info "注意：配置文件及 printer.cfg/moonraker.conf 中的引用需要手动移除："
+    echo "  - $KLIPPER_CONFIG_HOME/ace.cfg"
+    echo "  - printer.cfg 中的 '[include ace.cfg]'"
+    echo "  - moonraker.conf 中的 '[ace_status]' 及 '[update_manager ValgACE]' 段落"
+    
+    if prompt_yes_no "是否立即重启服务？"; then
+        sudo systemctl restart $KLIPPER_SERVICE $MOONRAKER_SERVICE
+        print_success "服务已重启"
+    fi
+}
+
+# ----------------------------- 主流程 ----------------------------------
+show_help() {
+    cat << EOF
+用法: $0 [选项]
+
+选项:
+  -u          卸载 ValgACE
+  -h          显示此帮助信息
+  -v          显示版本信息
+
+不带选项运行时将启动交互式安装向导。
+EOF
+}
+
+show_version() {
+    echo "ValgACE 安装脚本 v${SCRIPT_VERSION}"
+}
+
+# 解析命令行参数
+UNINSTALL=0
+while getopts "uhv" opt; do
+    case $opt in
+        u) UNINSTALL=1 ;;
+        h) show_help; exit 0 ;;
+        v) show_version; exit 0 ;;
+        *) show_help; exit 1 ;;
+    esac
+done
+
+# 检查是否以 root 运行
+if [ "$EUID" -eq 0 ] && [ "$(uname -m)" != "mips" ]; then
+    print_error "请勿以 root 用户运行此脚本。"
+    exit 1
+fi
+
+# 执行相应操作
 if [ "$UNINSTALL" -eq 1 ]; then
-    uninstall
+    uninstall_all
+    exit 0
+fi
+
+# 交互式安装
+print_header "ValgACE 交互式安装向导 v${SCRIPT_VERSION}"
+
+# 确认或修改默认路径
+print_info "检测到以下默认路径，如有不符请修改："
+KLIPPER_HOME=$(prompt_input "Klipper 安装目录" "$KLIPPER_HOME")
+KLIPPER_CONFIG_HOME=$(prompt_input "Klipper 配置目录" "$KLIPPER_CONFIG_HOME")
+MOONRAKER_HOME=$(prompt_input "Moonraker 安装目录" "$MOONRAKER_HOME")
+MOONRAKER_CONFIG="${KLIPPER_CONFIG_HOME}/moonraker.conf"
+PRINTER_CFG="${KLIPPER_CONFIG_HOME}/printer.cfg"
+
+# 验证关键路径
+if [ ! -d "$KLIPPER_HOME/klippy/extras" ]; then
+    print_error "Klipper extras 目录不存在: $KLIPPER_HOME/klippy/extras"
+    exit 1
+fi
+if [ ! -d "$MOONRAKER_HOME/moonraker/components" ]; then
+    print_error "Moonraker components 目录不存在: $MOONRAKER_HOME/moonraker/components"
+    exit 1
+fi
+
+# 执行安装步骤
+install_klipper_extras
+install_config
+install_moonraker_component
+add_update_manager
+install_web_dashboard
+
+if [ $INSTALL_WEB -eq 1 ]; then
+    configure_api_endpoint
+    set_permissions
 else
-    install_requirements
-    link_extension
-    link_temperature_sensor
-    link_moonraker_component
-    copy_config
-    add_updater
-    restart_service "$MOONRAKER_SERVICE"
+    print_info "已跳过 API 端点配置和权限设置（未安装 Web 界面）"
 fi
 
-start_service "$KLIPPER_SERVICE"
+restart_services
 
-echo "操作成功完成"
-exit 0
+print_header "安装成功完成！"
+cat << EOF
 
-# ============================================================================
-# 主安装
-# ============================================================================
+ValgACE 已成功安装。
 
+- Klipper 扩展: $KLIPPER_HOME/klippy/extras/
+- 配置文件:    $KLIPPER_CONFIG_HOME/ace.cfg
+- Moonraker:   $MOONRAKER_HOME/moonraker/components/ace_status.py
+- Web 仪表板:   $([ $INSTALL_WEB -eq 1 ] && echo "已安装" || echo "未安装")
 
-# ============================================================================
-# 入口点
-# ============================================================================
+如需卸载，请运行: $0 -u
 
-if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
-    main "$@"
-fi
+EOF
