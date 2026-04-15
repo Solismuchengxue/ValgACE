@@ -150,17 +150,23 @@ ensure_printer_cfg_include() {
 # ----------------------------- 安装步骤 ----------------------------------
 install_requirements() {
     print_header "0. 安装 Python 依赖"
-    if [ ! -f "$SRC_REQUIREMENTS" ]; then
-        print_warning "未找到 requirements.txt，跳过依赖安装"
-        return
-    fi
-
     local pip_cmd="pip3"
     if [ -d "${INSTALL_HOME}/klippy-env" ]; then
         pip_cmd="${INSTALL_HOME}/klippy-env/bin/pip3"
     fi
 
-    print_info "使用 $pip_cmd 安装依赖..."
+    # 检查 pyserial 是否已安装
+    if $pip_cmd show pyserial &>/dev/null; then
+        print_success "pyserial 已安装，跳过依赖安装"
+        return
+    fi
+
+    if [ ! -f "$SRC_REQUIREMENTS" ]; then
+        print_warning "未找到 requirements.txt，跳过依赖安装"
+        return
+    fi
+
+    print_info "使用 $pip_cmd 安装 pyserial..."
     if $pip_cmd install -r "$SRC_REQUIREMENTS" --quiet; then
         print_success "依赖安装完成"
     else

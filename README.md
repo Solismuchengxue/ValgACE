@@ -218,31 +218,18 @@ curl -X POST http://localhost:7125/server/ace/command \
 - 干燥管理
 - WebSocket 连接用于实时更新
 
-### 快速安装仪表板
+**在浏览器中打开：`http://<Fluidd IP>/ace.html`**
 
-```bash
-# 复制整个 web-interface 目录
-mkdir -p ~/ace-dashboard
-cp -r ~/ValgACE/web-interface/* ~/ace-dashboard/
-
-# 运行 HTTP 服务器
-cd ~/ace-dashboard
-python3 -m http.server 8080
-```
-
-在浏览器中打开：`http://<打印机IP>:8080/index.html`
-
-**对于持久使用，建议通过 nginx 安装** 
+**对于nginx 安装** 
 
 参见 [安装说明](docs/INSTALLATION.md#2-安装-valgace-仪表板) 和 [nginx 配置示例](web-interface/server/ace_dashboard.nginx.conf)
 
 主要文件：
-- `index.html` - 主页面入口
-- `js/ace-dashboard.js` - 主应用逻辑
-- `css/ace-dashboard.css` - 样式表
-- `config/ace-dashboard-config.js` - API 配置
-- `assets/favicon.svg` - 网站图标
-- `ace-dashboard-config.js` - Moonraker 地址配置
+- `ace.html` - 主页面入口
+- `ace-dashboard.js` - 主应用逻辑
+- `ace-dashboard.css` - 样式表
+- `ace-dashboard-config.js` - Moonraker API 配置
+- `favicon.svg` - 网站图标
 
 ## 支持
 
@@ -256,7 +243,7 @@ python3 -m http.server 8080
 - [工作演示](https://youtu.be/hozubbjeEw8)
 ### GitHub
 
-- **仓库：** https://github.com/agrloki/ValgACE
+- **仓库：** https://github.com/Solismuchengxue/SolisACE
 - **问题：** 使用 GitHub Issues 报告错误
 
 ## 致谢
