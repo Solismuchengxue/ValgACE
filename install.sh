@@ -402,10 +402,16 @@ cat << EOF
 
 ValgACE 已成功安装。
 
-- Klipper 扩展: $KLIPPER_HOME/klippy/extras/
-- 配置文件:    $KLIPPER_CONFIG_HOME/ace.cfg
-- Moonraker:   $MOONRAKER_HOME/moonraker/components/ace_status.py
-- Web 仪表板:   $([ $INSTALL_WEB -eq 1 ] && echo "已安装" || echo "未安装")
+- Klipper 扩展:     $KLIPPER_HOME/klippy/extras/ace.py
+                    $KLIPPER_HOME/klippy/extras/temperature_ace.py
+- Moonraker 扩展:   $MOONRAKER_HOME/moonraker/components/ace_status.py
+- Web 仪表板:       $([ $INSTALL_WEB -eq 1 ] && echo "已安装" || echo "未安装")
+                    if 已安装，请检查以下路径：
+                    ${INSTALL_HOME}/mainsail 或 ${INSTALL_HOME}/fluidd (取决于选择)
+                    ace.html ace-dashboard.js ace-dashboard.css ace-dashboard-config.js favicon.svg
+- 配置文件:         $KLIPPER_CONFIG_HOME/ace.cfg
+                    $KLIPPER_CONFIG_HOME/printer.cfg (包含[include ace.cfg])
+                    $KLIPPER_CONFIG_HOME/moonraker.conf (包含[ace_status]和[update_manager ValgACE])
 
 如需卸载，请运行: $0 -u
 

@@ -1,16 +1,11 @@
-# ValgACE - Anycubic 彩色引擎专业版驱动程序
+# SolisACE - 基于ValgACE的Anycubic ACE 彩色引擎专业版驱动程序
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-**ValgACE** - Klipper 模块，提供 Anycubic Color Engine Pro (ACE Pro) 自动换料装置的完整管理功能。
+**SolisACE** - 基于ValgACE的适配个人使用的修改版，提供 Anycubic Color Engine Pro (ACE Pro) 自动换料装置的完整管理功能。
 
 [English](./README_EN.md) | **简体中文** | [Русский](./README_RU.md) | [日本語](./README_JA.md)
 
-**主要仓库迁移到 [GitVerse](https://gitverse.ru/Agrloki/ValgAce)**
-
-**ace-solo** [ace-solo](https://github.com/agrloki/ace-solo) 独立 Python 应用程序，用于无需 Klipper 管理 Anycubic ACE Pro。
-
-**acepro-mmu-dashboard** [acepro-mmu-dashboard](https://github.com/ducati1198/acepro-mmu-dashboard) @ducati1198 提供的替代网页界面
 
 ## 📋 目录
 
@@ -25,15 +20,11 @@
 
 ## 简介
 
-ValgACE 是一个功能完整的驱动程序，用于通过 Klipper 管理 Anycubic Color Engine Pro 设备。该驱动程序提供 4 个槽位之间的自动换料、干燥管理、进料和回退功能，以及 RFID 标签支持。
-
-### 项目状态
+SolisACE 是一个功能完整的驱动程序，用于通过 Klipper 管理 Anycubic Color Engine Pro 设备。该驱动程序提供 4 个槽位之间的自动换料、干燥管理、进料和回退功能，以及 RFID 标签支持。
 
 **状态：** 开发版本
 
-**验证平台：** Voron Trident 3D打印机
-
-**基于：** [DuckACE](https://github.com/utkabobr/DuckACE)
+**基于：** [ValgACE](https://github.com/agrloki/ValgACE)
 
 **未来计划：**
 - 暂无计划 😊 所有需求都已实现。
@@ -94,8 +85,7 @@ ValgACE 是一个功能完整的驱动程序，用于通过 Klipper 管理 Anycu
 
 ### 支持的打印机
 
-- ✅ Creality K1 / K1 Max
-- ⚠️ 其他 Klipper 打印机（需要测试）
+- ⚠️ Voron Trident 3D打印机（正在测试）
 
 ## 快速开始
 
@@ -149,13 +139,13 @@ ACE Pro 设备通过MX3.0 6P端子连接到标准 USB：
 完整文档可在 `docs/` 文件夹中获得：
 
 **英文文档：**
-- **[安装](docs/INSTALLATION.md)**            - 详细的安装指南
-- **[用户指南](docs/USER_GUIDE.md)**          - 如何使用 ValgACE
-- **[命令参考](docs/COMMANDS.md)**            - 所有可用的 G-code 命令
-- **[配置](docs/CONFIGURATION.md)**           - 参数配置
-- **[故障排除](docs/TROUBLESHOOTING.md)**     - 常见问题和解决方案
-- **[协议](docs/PROTOCOL.md)**                - 技术协议文档
-- **[Moonraker API](docs/MOONRAKER_API.md)**  - Moonraker API 集成和 REST 端点
+- **[安装](docs/INSTALLATION.md)**    - 详细的安装指南
+- **[用户指南](docs/USER_GUIDE.md)**  - 如何使用 ValgACE
+- **[命令参考](docs/COMMANDS.md)**    - 所有可用的 G-code 命令
+- **[配置](docs/CONFIGURATION.md)**   - 参数配置
+- **[故障排除](docs/TROUBLESHOOTING.md)** - 常见问题和解决方案
+- **[协议](docs/PROTOCOL.md)** - 技术协议文档
+- **[Moonraker API](docs/MOONRAKER_API.md)** - Moonraker API 集成和 REST 端点
 
 
 ## 主要命令
@@ -275,6 +265,7 @@ python3 -m http.server 8080
 - [DuckACE](https://github.com/utkabobr/DuckACE) by utkabobr
 - [BunnyACE](https://github.com/BlackFrogKok/BunnyACE) by BlackFrogKok
 - [ValgACE](https://github.com/agrloki/ValgACE) by agrloki
+- [acepro-mmu-dashboard](https://github.com/ducati1198/acepro-mmu-dashboard) by ducati1198 
 
 ## 许可证
 
