@@ -27,7 +27,7 @@ SolisACE 是一个功能完整的驱动程序，用于通过 Klipper 管理 Anyc
 **基于：** [ValgACE](https://github.com/agrloki/ValgACE)
 
 **未来计划：**
-- 暂无计划 😊 所有需求都已实现。
+- WEB端
 
 ## 功能
 
@@ -35,8 +35,8 @@ SolisACE 是一个功能完整的驱动程序，用于通过 Klipper 管理 Anyc
 - 自动换色（4 个槽位）
 - 可调速度的进料和回退
 - 自动装载到喷嘴
-- 无限线轴模式（infinity spool），可自定义槽位顺序
-- **无限线轴自动触发** - 自动监控并在耗材用尽时更换槽位
+- 无限料盘模式（infinity spool），可自定义槽位顺序
+- **无限料盘自动触发** - 自动监控并在耗材用尽时更换槽位
 
 ✅ **干燥管理**
 - 可编程耗材干燥
@@ -125,12 +125,16 @@ ACE Pro 设备通过MX3.0 6P端子连接到标准 USB：
 
 **连接器针脚分布：**
 
-- **1** - 无（VCC，工作不需要，ACE 提供自己的电源）
-- **2** - 接地（地线）
+- **1** - 24V（VCC不要接！ACE 提供自己的电源）
+- **2** - GND（地线）
 - **3** - D- （USB 数据-）
 - **4** - D+（USB 数据+）
 
 **连接方式：** 将 Molex 连接器连接到普通 USB 电缆 - 无需任何额外操作。
+
+可以自行购买端子，电商搜索关键词【MX3.0 公壳】（公壳需要搭配母端子）
+
+![MX3.0 shell](/.github/img/MX3.0Male shell+ female terminal.png)
 
 详见 [安装指南](docs/INSTALLATION.md#设备连接)。
 
@@ -169,7 +173,7 @@ ACE_RETRACT INDEX=0 LENGTH=50 SPEED=25
 ACE_START_DRYING TEMP=50 DURATION=120
 ACE_STOP_DRYING
 
-# 无限线轴模式
+# 无限料盘模式
 ACE_SET_INFINITY_SPOOL_ORDER ORDER="0,1,2,3"  # 设置槽位顺序
 ACE_INFINITY_SPOOL  # 线轴耗尽时自动换槽位
 

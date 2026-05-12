@@ -360,7 +360,7 @@ class ValgAce:
     def _register_gcode_commands(self):
         commands = [
             ('ACE_DEBUG', self.cmd_ACE_DEBUG, "ACE调试连接"),
-            ('ACE_STATUS', self.cmd_ACE_STATUS, "ACE设备状态"),
+            ('ACE_STATUS', self.cmd_ACE_STATUS, "ACE设备状态查询"),
             ('ACE_START_DRYING', self.cmd_ACE_START_DRYING, "ACE开始干燥"),
             ('ACE_STOP_DRYING', self.cmd_ACE_STOP_DRYING, "ACE停止干燥"),
             ('ACE_ENABLE_FEED_ASSIST', self.cmd_ACE_ENABLE_FEED_ASSIST, "ACE启用送料辅助"),
@@ -381,7 +381,7 @@ class ValgAce:
             ('ACE_CONNECT', self.cmd_ACE_CONNECT, "ACE连接"),
             ('ACE_CONNECTION_STATUS', self.cmd_ACE_CONNECTION_STATUS, "ACE检查连接状态"),
             ('ACE_RECONNECT', self.cmd_ACE_RECONNECT, "ACE重连"),
-            ('ACE_GET_HELP', self.cmd_ACE_GET_HELP, "ACE命令及帮助"),
+            ('ACE_GET_HELP', self.cmd_ACE_GET_HELP, "ACE帮助信息查询"),
             ('ACE_GET_SLOTMAPPING', self.cmd_ACE_GET_SLOTMAPPING, "ACE获取插槽映射"),
             ('ACE_SET_SLOTMAPPING', self.cmd_ACE_SET_SLOTMAPPING, "ACE设置插槽映射"),
             ('ACE_RESET_SLOTMAPPING', self.cmd_ACE_RESET_SLOTMAPPING, "ACE重置插槽映射"),
